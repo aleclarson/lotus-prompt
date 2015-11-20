@@ -1,0 +1,21 @@
+{
+  "name": "lotus-prompt",
+  "description": "Synchronous user input for Node.",
+  "version": "1.0.0",
+  "main": "./js/src/index",
+  "dependencies": {
+    "define": "aleclarson/define#1.0.0",
+    "eventemitter3": "^1.1.0",
+    "grunt-contrib-coffee": "aleclarson/grunt-contrib-coffee",
+    "hooker": "^0.2.3",
+    "io": "aleclarson/io#1.0.0",
+    "keypress": "^0.2.1",
+    "lotus-log": "aleclarson/lotus-log#1.0.0",
+    "lotus-require": "aleclarson/lotus-require#1.0.0",
+    "parse-bool": "aleclarson/parse-bool#0.0.1",
+    "repeat-string": "^1.5.2",
+    "strip-ansi": "^2.0.1",
+    "type-utils": "aleclarson/type-utils#1.0.0"
+  },
+  "devDependencies": {}
+}
