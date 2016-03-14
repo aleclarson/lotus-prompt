@@ -4,9 +4,7 @@
   "version": "1.0.0",
   "main": "./js/src/index",
   "dependencies": {
-    "define": "aleclarson/define#1.0.0",
-    "eventemitter3": "^1.1.0",
-    "grunt-contrib-coffee": "aleclarson/grunt-contrib-coffee",
+    "factory": "aleclarson/factory#1.0.0",
     "hooker": "^0.2.3",
     "io": "aleclarson/io#1.0.0",
     "keypress": "^0.2.1",
@@ -16,6 +14,5 @@
     "repeat-string": "^1.5.2",
     "strip-ansi": "^2.0.1",
     "type-utils": "aleclarson/type-utils#1.0.0"
-  },
-  "devDependencies": {}
+  }
 }
