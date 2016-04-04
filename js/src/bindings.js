@@ -1,21 +1,21 @@
-var cursor, log, ref;
+var log;
 
-ref = require("lotus-log"), log = ref.log, cursor = ref.cursor;
+log = require("lotus-log");
 
 module.exports = {
   "up": function() {},
   "down": function() {},
   "right": function() {
-    if (cursor.x === this._labelLength + this._message.length) {
+    if (log.cursor.x === this._labelLength + this._message.length) {
       return;
     }
-    return cursor.x++;
+    return log.cursor.x++;
   },
   "left": function() {
-    if (cursor.x === this._labelLength) {
+    if (log.cursor.x === this._labelLength) {
       return;
     }
-    return cursor.x--;
+    return log.cursor.x--;
   },
   "return": function() {
     if (this._message.length === 0) {
@@ -34,19 +34,19 @@ module.exports = {
     if (this._message.length === 0) {
       return;
     }
-    x = cursor.x - this._labelLength;
+    x = log.cursor.x - this._labelLength;
     if (x <= 0) {
       return;
     }
-    cursorWasHidden = cursor.isHidden;
-    cursor.isHidden = true;
+    cursorWasHidden = log.cursor.isHidden;
+    log.cursor.isHidden = true;
     log.clearLine();
     this._printLabel();
     halfOne = this._message.slice(0, x - 1);
     halfTwo = this._message.slice(x);
     this._print(this._message = halfOne + halfTwo);
-    cursor.x -= halfTwo.length;
-    return cursor.isHidden = cursorWasHidden;
+    log.cursor.x -= halfTwo.length;
+    return log.cursor.isHidden = cursorWasHidden;
   },
   "c+ctrl": function() {
     var length;
@@ -75,27 +75,27 @@ module.exports = {
     return process.exit(0, "SIGTERM");
   },
   "a+ctrl": function() {
-    return cursor.x = this._labelLength;
+    return log.cursor.x = this._labelLength;
   },
   "e+ctrl": function() {
-    return cursor.x = log.line.length;
+    return log.cursor.x = log.line.length;
   },
   "w+ctrl": function() {
     var a, b, cursorWasHidden, x;
-    cursorWasHidden = cursor.isHidden;
-    cursor.isHidden = true;
-    a = this._message.slice(0, cursor.x);
+    cursorWasHidden = log.cursor.isHidden;
+    log.cursor.isHidden = true;
+    a = this._message.slice(0, log.cursor.x);
     if (a.length > 0) {
       x = 1 + a.replace(/\s+$/, "").lastIndexOf(" ");
       a = a.slice(0, x);
-      b = this._message.slice(cursor.x);
+      b = this._message.slice(log.cursor.x);
       this._message = a + b;
       log.clearLine();
       this._printLabel();
       this._print(this._message);
-      cursor.x = this._labelLength + x;
+      log.cursor.x = this._labelLength + x;
     }
-    return cursor.isHidden = cursorWasHidden;
+    return log.cursor.isHidden = cursorWasHidden;
   }
 };
 

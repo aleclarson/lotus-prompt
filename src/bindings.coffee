@@ -1,5 +1,5 @@
 
-{ log, cursor } = require "lotus-log"
+log = require "lotus-log"
 
 module.exports =
 
@@ -15,29 +15,29 @@ module.exports =
   "down": ->
 
     # if @_history.index < ( @_history.count - 1 )
-    #   cursorWasHidden = cursor.isHidden
-    #   cursor.isHidden = yes
+    #   cursorWasHidden = log.cursor.isHidden
+    #   log.cursor.isHidden = yes
     #   log.clearLine()
     #   @_printLabel()
     #   log._printToChunk @_message = @_history.cache[++@_history.index]
-    #   cursor.isHidden = cursorWasHidden
+    #   log.cursor.isHidden = cursorWasHidden
     #
     # else if @_history.index is ( @_history.count - 1 ) and @_message.length > 0
-    #   cursorWasHidden = cursor.isHidden
-    #   cursor.isHidden = yes
+    #   cursorWasHidden = log.cursor.isHidden
+    #   log.cursor.isHidden = yes
     #   log.clearLine()
     #   @_printLabel()
     #   @_history.index++
     #   @_message = ""
-    #   cursor.isHidden = cursorWasHidden
+    #   log.cursor.isHidden = cursorWasHidden
 
   "right": ->
-    return if cursor.x is @_labelLength + @_message.length
-    cursor.x++
+    return if log.cursor.x is @_labelLength + @_message.length
+    log.cursor.x++
 
   "left": ->
-    return if cursor.x is @_labelLength
-    cursor.x--
+    return if log.cursor.x is @_labelLength
+    log.cursor.x--
 
   "return": ->
     return if @_message.length is 0
@@ -55,12 +55,12 @@ module.exports =
 
     return if @_message.length is 0
 
-    x = cursor.x - @_labelLength
+    x = log.cursor.x - @_labelLength
 
     return if x <= 0
 
-    cursorWasHidden = cursor.isHidden
-    cursor.isHidden = yes
+    cursorWasHidden = log.cursor.isHidden
+    log.cursor.isHidden = yes
     log.clearLine()
     @_printLabel()
 
@@ -68,8 +68,8 @@ module.exports =
     halfTwo = @_message.slice x
     @_print @_message = halfOne + halfTwo
 
-    cursor.x -= halfTwo.length
-    cursor.isHidden = cursorWasHidden
+    log.cursor.x -= halfTwo.length
+    log.cursor.isHidden = cursorWasHidden
 
   "c+ctrl": ->
     { length } = @_message
@@ -94,25 +94,25 @@ module.exports =
 
   # Move cursor to beginning of prompt.
   "a+ctrl": ->
-    cursor.x = @_labelLength
+    log.cursor.x = @_labelLength
 
   # Move cursor to end of prompt.
   "e+ctrl": ->
-    cursor.x = log.line.length
+    log.cursor.x = log.line.length
 
   # Delete last word before the cursor.
   "w+ctrl": ->
-    cursorWasHidden = cursor.isHidden
-    cursor.isHidden = yes
+    cursorWasHidden = log.cursor.isHidden
+    log.cursor.isHidden = yes
     # BUG: Ansi is not supported when slicing!
-    a = @_message.slice 0, cursor.x
+    a = @_message.slice 0, log.cursor.x
     if a.length > 0
       x = 1 + a.replace(/\s+$/, "").lastIndexOf " "
       a = a.slice 0, x
-      b = @_message.slice cursor.x
+      b = @_message.slice log.cursor.x
       @_message = a + b
       log.clearLine()
       @_printLabel()
       @_print @_message
-      cursor.x = @_labelLength + x
-    cursor.isHidden = cursorWasHidden
+      log.cursor.x = @_labelLength + x
+    log.cursor.isHidden = cursorWasHidden

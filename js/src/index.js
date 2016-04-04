@@ -1,12 +1,10 @@
-var BindingMap, EventEmitter, FS, Factory, addKeyPress, assert, assertType, async, cursor, isType, log, modifiers, parseBool, ref, ref1, stripAnsi;
+var BindingMap, Event, EventEmitter, FS, Factory, Null, Q, addKeyPress, assert, assertType, async, isType, log, modifiers, parseBool, ref, stripAnsi;
 
 require("lotus-require");
 
-ref = require("type-utils"), isType = ref.isType, assertType = ref.assertType, assert = ref.assert;
+ref = require("type-utils"), Null = ref.Null, isType = ref.isType, assertType = ref.assertType, assert = ref.assert;
 
 EventEmitter = require("events").EventEmitter;
-
-ref1 = require("lotus-log"), log = ref1.log, cursor = ref1.cursor;
 
 async = require("io").async;
 
@@ -18,7 +16,13 @@ parseBool = require("parse-bool");
 
 Factory = require("factory");
 
+Event = require("event");
+
+log = require("lotus-log");
+
 FS = require("fs");
+
+Q = require("q");
 
 BindingMap = require("./bindings");
 
@@ -26,7 +30,6 @@ modifiers = ["ctrl", "meta", "shift"];
 
 module.exports = Factory("Prompt", {
   singleton: true,
-  kind: EventEmitter,
   customValues: {
     stdin: {
       value: null,
@@ -61,12 +64,13 @@ module.exports = Factory("Prompt", {
     _message: {
       value: "",
       didSet: function(message) {
-        return assertType(message, [String, Void]);
+        return assertType(message, [String, Null]);
       }
     }
   },
   initValues: function() {
     return {
+      didPressKey: Event(),
       showCursorDuring: true,
       _reading: false,
       _printing: false,
@@ -98,14 +102,14 @@ module.exports = Factory("Prompt", {
     if (hasLabel) {
       this._labelPrinter = options.label;
     }
-    deferred = async.defer();
+    deferred = Q.defer();
     this._async = true;
     this._open();
-    nextTick = async.defer();
-    async.timeout(nextTick.promise, 1000).fail(function() {
+    nextTick = Q.defer();
+    Q.timeout(nextTick.promise, 1000).fail(function() {
       return deferred.reject(Error("Asynchronous prompt failed unexpectedly. Try using `prompt.sync()` instead."));
     });
-    async.nextTick((function(_this) {
+    Q.nextTick((function(_this) {
       return function() {
         nextTick.resolve();
         return _this._loopAsync();
@@ -188,18 +192,18 @@ module.exports = Factory("Prompt", {
     this._indent = log.indent;
     log.moat(1);
     this._printLabel();
-    this._cursorWasHidden = cursor.isHidden;
+    this._cursorWasHidden = log.cursor.isHidden;
     if (this.showCursorDuring) {
-      cursor.isHidden = false;
+      log.cursor.isHidden = false;
     }
-    if (cursor.x < this._labelLength) {
-      cursor.x = this._labelLength;
+    if (log.cursor.x < this._labelLength) {
+      log.cursor.x = this._labelLength;
     }
   },
   _close: function() {
     if (this._reading) {
       if (this.showCursorDuring) {
-        cursor.isHidden = this._cursorWasHidden;
+        log.cursor.isHidden = this._cursorWasHidden;
       }
       this._reading = false;
       this._async = null;
@@ -215,7 +219,7 @@ module.exports = Factory("Prompt", {
     }
     this._printing = true;
     log.pushIndent(0);
-    x = cursor.x - this._labelLength;
+    x = log.cursor.x - this._labelLength;
     if (!(x >= 0)) {
       throw Error("'x' should never be under zero.");
     }
@@ -229,7 +233,7 @@ module.exports = Factory("Prompt", {
       log.line.contents = this._label + a;
       log.line.length = this._labelLength + stripAnsi(a).length;
       this._print(char + b);
-      cursor.x = log.line.length - stripAnsi(b).length;
+      log.cursor.x = log.line.length - stripAnsi(b).length;
     }
     log.popIndent();
     this._printing = false;
@@ -252,7 +256,7 @@ module.exports = Factory("Prompt", {
     } else {
       command = char;
     }
-    this.emit("keypress", {
+    this.didPressKey.emit({
       command: command,
       key: key,
       char: char

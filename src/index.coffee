@@ -1,16 +1,18 @@
 
 require "lotus-require"
 
-{ isType, assertType, assert } = require "type-utils"
+{ Null, isType, assertType, assert } = require "type-utils"
 { EventEmitter } = require "events"
-{ log, cursor } = require "lotus-log"
 { async } = require "io"
 
 addKeyPress = require "keypress"
 stripAnsi = require "strip-ansi"
 parseBool = require "parse-bool"
 Factory = require "factory"
+Event = require "event"
+log = require "lotus-log"
 FS = require "fs"
+Q = require "q"
 
 BindingMap = require "./bindings"
 
@@ -24,8 +26,6 @@ modifiers = ["ctrl", "meta", "shift"]
 module.exports = Factory "Prompt",
 
   singleton: yes
-
-  kind: EventEmitter
 
   customValues:
 
@@ -53,9 +53,11 @@ module.exports = Factory "Prompt",
     _message:
       value: ""
       didSet: (message) ->
-        assertType message, [ String, Void ]
+        assertType message, [ String, Null ]
 
   initValues: ->
+
+    didPressKey: Event()
 
     showCursorDuring: yes
 
@@ -103,20 +105,20 @@ module.exports = Factory "Prompt",
     if hasLabel
       @_labelPrinter = options.label
 
-    deferred = async.defer()
+    deferred = Q.defer()
 
     @_async = yes
 
     @_open()
 
-    nextTick = async.defer()
+    nextTick = Q.defer()
 
-    async.timeout nextTick.promise, 1000
+    Q.timeout nextTick.promise, 1000
 
     .fail -> deferred.reject Error "Asynchronous prompt failed unexpectedly. Try using `prompt.sync()` instead."
 
     # Wait for the first keypress.
-    async.nextTick =>
+    Q.nextTick =>
       nextTick.resolve()
       @_loopAsync()
 
@@ -194,13 +196,13 @@ module.exports = Factory "Prompt",
     log.moat 1
     @_printLabel()
 
-    @_cursorWasHidden = cursor.isHidden
+    @_cursorWasHidden = log.cursor.isHidden
 
     if @showCursorDuring
-      cursor.isHidden = no
+      log.cursor.isHidden = no
 
-    if cursor.x < @_labelLength
-      cursor.x = @_labelLength
+    if log.cursor.x < @_labelLength
+      log.cursor.x = @_labelLength
 
     return
 
@@ -209,7 +211,7 @@ module.exports = Factory "Prompt",
     if @_reading
 
       if @showCursorDuring
-        cursor.isHidden = @_cursorWasHidden
+        log.cursor.isHidden = @_cursorWasHidden
 
       @_reading = no
       @_async = null
@@ -229,7 +231,7 @@ module.exports = Factory "Prompt",
 
     log.pushIndent 0
 
-    x = cursor.x - @_labelLength
+    x = log.cursor.x - @_labelLength
 
     throw Error "'x' should never be under zero." unless x >= 0
 
@@ -245,7 +247,7 @@ module.exports = Factory "Prompt",
       log.line.contents = @_label + a
       log.line.length = @_labelLength + stripAnsi(a).length
       @_print char + b
-      cursor.x = log.line.length - stripAnsi(b).length
+      log.cursor.x = log.line.length - stripAnsi(b).length
 
     log.popIndent()
 
@@ -268,7 +270,7 @@ module.exports = Factory "Prompt",
     else
       command = char
 
-    @emit "keypress", { command, key, char }
+    @didPressKey.emit { command, key, char }
 
     action = BindingMap[command]
 
@@ -309,7 +311,7 @@ module.exports = Factory "Prompt",
 #   prompt._line =
 #     contents: @line.contents
 #     length: @line.length
-#     x: cursor.x
+#     x: log.cursor.x
 #
 #   if prompt._line.contents isnt prompt.label + prompt._message
 #     throw Error "Line ##{@line.index} is not the prompt's line..."
@@ -323,5 +325,5 @@ module.exports = Factory "Prompt",
 #   log.line.contents = line.contents
 #   prompt._printing = yes
 #   log line.contents
-#   cursor.left line.length - line.x
+#   log.cursor.left line.length - line.x
 #   prompt._printing = no
