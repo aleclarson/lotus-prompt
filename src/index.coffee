@@ -1,96 +1,93 @@
 
-require "lotus-require"
-
 { Null, isType, assertType, assert } = require "type-utils"
 { EventEmitter } = require "events"
-{ async } = require "io"
 
+emptyFunction = require "emptyFunction"
 addKeyPress = require "keypress"
 stripAnsi = require "strip-ansi"
 parseBool = require "parse-bool"
-Factory = require "factory"
 Event = require "event"
-log = require "lotus-log"
+Type = require "Type"
+log = require "log"
 FS = require "fs"
 Q = require "q"
 
-BindingMap = require "./bindings"
-
-modifiers = ["ctrl", "meta", "shift"]
+BINDINGS = require "./bindings"
+MODIFIERS = [ "ctrl", "meta", "shift" ]
 
 # TODO: Enable prompt history.
 # history = log.History()
 # history.file = Path.resolve __dirname + "/../../.prompt_history"
 # history.index = history.cache.length
 
-module.exports = Factory "Prompt",
+type = Type "Prompt"
 
-  singleton: yes
+type.defineProperties
 
-  customValues:
+  stdin:
+    value: null
+    didSet: (newValue, oldValue) ->
+      return if newValue is oldValue
+      if newValue? and newValue.isTTY
+        newValue.setRawMode yes
+        @_stream = new EventEmitter
+        @_stream.write = (chunk) -> newValue.write chunk
+        @_stream.on "keypress", @_keypress.bind this
+        addKeyPress @_stream
+      else if oldValue? and oldValue.isTTY
+        @_stream = null
 
-    stdin:
-      value: null
-      didSet: (newValue, oldValue) ->
-        return if newValue is oldValue
-        if newValue? and newValue.isTTY
-          newValue.setRawMode yes
-          @_stream = new EventEmitter
-          @_stream.write = (chunk) -> newValue.write chunk
-          @_stream.on "keypress", @_keypress.bind this
-          addKeyPress @_stream
-        else if oldValue? and oldValue.isTTY
-          @_stream = null
+  inputMode:
+    value: "prompt"
+    willSet: ->
+      assert not @_reading, "Cannot set 'inputMode' while reading."
 
-    inputMode:
-      value: "prompt"
-      willSet: ->
-        assert not @_reading, "Cannot set 'inputMode' while reading."
+  isReading: get: ->
+    @_reading
 
-    isReading: get: ->
-      @_reading
+  _message:
+    value: ""
+    didSet: (message) ->
+      assertType message, [ String, Null ]
 
-    _message:
-      value: ""
-      didSet: (message) ->
-        assertType message, [ String, Null ]
+type.defineValues
 
-  initValues: ->
+  didPressKey: -> Event()
 
-    didPressKey: Event()
+  showCursorDuring: yes
 
-    showCursorDuring: yes
+  # TODO: Implement multi-line mode.
+  # isMultiline: no
 
-    # TODO: Implement multi-line mode.
-    # isMultiline: no
+  # TODO: Implement tab completion.
+  # tabComplete: -> []
 
-    # TODO: Implement tab completion.
-    # tabComplete: -> []
+  _reading: no
 
-    _reading: no
+  _printing: no
 
-    _printing: no
+  _async: null
 
-    _async: null
+  _prevMessage: null
 
-    _prevMessage: null
+  _stream: null
 
-    _stream: null
+  _cursorWasHidden: no
 
-    _cursorWasHidden: no
+  _line: null
 
-    _line: null
+  _indent: 0
 
-    _indent: 0
+  _label: ""
 
-    _label: ""
+  _labelLength: 0
 
-    _labelLength: 0
+  _labelPrinter: emptyFunction.thatReturns emptyFunction.thatReturnsFalse
 
-    _labelPrinter: -> no
+type.initInstance ->
+  @stdin = process.stdin
 
-  init: ->
-    @stdin = process.stdin
+type.defineMethods
 
   sync: (options) ->
     @_readSync options
@@ -263,7 +260,7 @@ module.exports = Factory "Prompt",
 
     if key?
       command = key.name
-      for modifier in modifiers
+      for modifier in MODIFIERS
         if key[modifier] is yes
           hasModifier = yes
           command += "+" + modifier
@@ -272,7 +269,7 @@ module.exports = Factory "Prompt",
 
     @didPressKey.emit { command, key, char }
 
-    action = BindingMap[command]
+    action = BINDINGS[command]
 
     return action.call this if action instanceof Function
 
@@ -299,6 +296,9 @@ module.exports = Factory "Prompt",
     log.popIndent()
     @_printing = no
 
+module.exports = type.construct()
+
+# TODO: Handle asynchronous rewriting?
 # hooker.hook log, "_printChunk", pre: ({ message }) ->
 #
 #   # Only rewrite the prompt's line during asynchronous reading.

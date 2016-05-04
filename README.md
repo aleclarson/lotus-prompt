@@ -1,26 +1,14 @@
 
-# lotus-prompt v1.0.0 [![stable](http://badges.github.io/stability-badges/dist/stable.svg)](http://github.com/badges/stability-badges)
+# prompt 1.0.0 ![experimental](https://img.shields.io/badge/stability-experimental-EC5315.svg?style=flat)
 
-```sh
-npm install aleclarson/lotus-prompt#1.0.0
-```
-
-`lotus-prompt` provides a prompt capable of taking synchronous and asynchronous input inside your terminal.
-
-&nbsp;
-
-## usage
-
-```CoffeeScript
-require "lotus-prompt"
-
-log = require "lotus-log"
+```coffee
+prompt = require "lotus-prompt"
 
 # Take user input synchronously.
-input = log.prompt.sync()
+input = prompt.sync()
 
 # Take user input asynchronously.
-log.prompt().then (input) ->
+prompt.async().then (input) ->
 ```
 
-&nbsp;
+**TODO:** Write tests and more documentation?!

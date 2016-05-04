@@ -1,12 +1,10 @@
-var BindingMap, Event, EventEmitter, FS, Factory, Null, Q, addKeyPress, assert, assertType, async, isType, log, modifiers, parseBool, ref, stripAnsi;
-
-require("lotus-require");
+var BINDINGS, Event, EventEmitter, FS, MODIFIERS, Null, Q, Type, addKeyPress, assert, assertType, emptyFunction, isType, log, parseBool, ref, stripAnsi, type;
 
 ref = require("type-utils"), Null = ref.Null, isType = ref.isType, assertType = ref.assertType, assert = ref.assert;
 
 EventEmitter = require("events").EventEmitter;
 
-async = require("io").async;
+emptyFunction = require("emptyFunction");
 
 addKeyPress = require("keypress");
 
@@ -14,82 +12,84 @@ stripAnsi = require("strip-ansi");
 
 parseBool = require("parse-bool");
 
-Factory = require("factory");
-
 Event = require("event");
 
-log = require("lotus-log");
+Type = require("Type");
+
+log = require("log");
 
 FS = require("fs");
 
 Q = require("q");
 
-BindingMap = require("./bindings");
+BINDINGS = require("./bindings");
 
-modifiers = ["ctrl", "meta", "shift"];
+MODIFIERS = ["ctrl", "meta", "shift"];
 
-module.exports = Factory("Prompt", {
-  singleton: true,
-  customValues: {
-    stdin: {
-      value: null,
-      didSet: function(newValue, oldValue) {
-        if (newValue === oldValue) {
-          return;
-        }
-        if ((newValue != null) && newValue.isTTY) {
-          newValue.setRawMode(true);
-          this._stream = new EventEmitter;
-          this._stream.write = function(chunk) {
-            return newValue.write(chunk);
-          };
-          this._stream.on("keypress", this._keypress.bind(this));
-          return addKeyPress(this._stream);
-        } else if ((oldValue != null) && oldValue.isTTY) {
-          return this._stream = null;
-        }
+type = Type("Prompt");
+
+type.defineProperties({
+  stdin: {
+    value: null,
+    didSet: function(newValue, oldValue) {
+      if (newValue === oldValue) {
+        return;
       }
-    },
-    inputMode: {
-      value: "prompt",
-      willSet: function() {
-        return assert(!this._reading, "Cannot set 'inputMode' while reading.");
-      }
-    },
-    isReading: {
-      get: function() {
-        return this._reading;
-      }
-    },
-    _message: {
-      value: "",
-      didSet: function(message) {
-        return assertType(message, [String, Null]);
+      if ((newValue != null) && newValue.isTTY) {
+        newValue.setRawMode(true);
+        this._stream = new EventEmitter;
+        this._stream.write = function(chunk) {
+          return newValue.write(chunk);
+        };
+        this._stream.on("keypress", this._keypress.bind(this));
+        return addKeyPress(this._stream);
+      } else if ((oldValue != null) && oldValue.isTTY) {
+        return this._stream = null;
       }
     }
   },
-  initValues: function() {
-    return {
-      didPressKey: Event(),
-      showCursorDuring: true,
-      _reading: false,
-      _printing: false,
-      _async: null,
-      _prevMessage: null,
-      _stream: null,
-      _cursorWasHidden: false,
-      _line: null,
-      _indent: 0,
-      _label: "",
-      _labelLength: 0,
-      _labelPrinter: function() {
-        return false;
-      }
-    };
+  inputMode: {
+    value: "prompt",
+    willSet: function() {
+      return assert(!this._reading, "Cannot set 'inputMode' while reading.");
+    }
   },
-  init: function() {
-    return this.stdin = process.stdin;
+  isReading: {
+    get: function() {
+      return this._reading;
+    }
   },
+  _message: {
+    value: "",
+    didSet: function(message) {
+      return assertType(message, [String, Null]);
+    }
+  }
+});
+
+type.defineValues({
+  didPressKey: function() {
+    return Event();
+  },
+  showCursorDuring: true,
+  _reading: false,
+  _printing: false,
+  _async: null,
+  _prevMessage: null,
+  _stream: null,
+  _cursorWasHidden: false,
+  _line: null,
+  _indent: 0,
+  _label: "",
+  _labelLength: 0,
+  _labelPrinter: emptyFunction.thatReturns(emptyFunction.thatReturnsFalse)
+});
+
+type.initInstance(function() {
+  return this.stdin = process.stdin;
+});
+
+type.defineMethods({
   sync: function(options) {
     return this._readSync(options);
   },
@@ -246,8 +246,8 @@ module.exports = Factory("Prompt", {
     hasModifier = false;
     if (key != null) {
       command = key.name;
-      for (i = 0, len = modifiers.length; i < len; i++) {
-        modifier = modifiers[i];
+      for (i = 0, len = MODIFIERS.length; i < len; i++) {
+        modifier = MODIFIERS[i];
         if (key[modifier] === true) {
           hasModifier = true;
           command += "+" + modifier;
@@ -261,7 +261,7 @@ module.exports = Factory("Prompt", {
       key: key,
       char: char
     });
-    action = BindingMap[command];
+    action = BINDINGS[command];
     if (action instanceof Function) {
       return action.call(this);
     }
@@ -294,5 +294,7 @@ module.exports = Factory("Prompt", {
     return this._printing = false;
   }
 });
+
+module.exports = type.construct();
 
 //# sourceMappingURL=../../map/src/index.map

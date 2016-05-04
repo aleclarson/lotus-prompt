@@ -1,5 +1,5 @@
 
-log = require "lotus-log"
+log = require "log"
 
 module.exports =
 
