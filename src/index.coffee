@@ -54,6 +54,8 @@ type.defineValues
 
   didPressKey: -> Event()
 
+  didClose: -> Event()
+
   showCursorDuring: yes
 
   # TODO: Implement multi-line mode.
@@ -62,8 +64,10 @@ type.defineValues
   # TODO: Implement tab completion.
   # tabComplete: -> []
 
+  # The prompt is reading input.
   _reading: no
 
+  # The prompt is printing output.
   _printing: no
 
   _async: null
@@ -84,6 +88,10 @@ type.defineValues
 
   _labelPrinter: emptyFunction.thatReturns emptyFunction.thatReturnsFalse
 
+  _mark: ->
+    TimeMarker = require "TimeMarker"
+    TimeMarker()
+
 type.initInstance ->
   @stdin = process.stdin
 
@@ -97,26 +105,21 @@ type.defineMethods
 
   _readAsync: (options) ->
 
-    hasLabel = isType options.label, Function
+    @_async = yes
 
-    if hasLabel
-      @_labelPrinter = options.label
+    if isType options.label, Function
+      labelPrinter = options.label
+
+    else if isType options.label, String
+      labelPrinter = -> options.label
 
     deferred = Q.defer()
 
-    @_async = yes
-
     @_open()
-
-    nextTick = Q.defer()
-
-    Q.timeout nextTick.promise, 1000
-
-    .fail -> deferred.reject Error "Asynchronous prompt failed unexpectedly. Try using `prompt.sync()` instead."
 
     # Wait for the first keypress.
     Q.nextTick =>
-      nextTick.resolve()
+      deferred.resolve()
       @_loopAsync()
 
     deferred.promise
@@ -155,26 +158,28 @@ type.defineMethods
 
   _readSync: (options = {}) ->
 
-    hasLabel = isType options.label, Function
-
-    if hasLabel
-      @_labelPrinter = options.label
-
     @_async = no
 
+    if isType options.label, Function
+      labelPrinter = options.label
+
+    else if isType options.label, String
+      labelPrinter = -> options.label
+
+    if labelPrinter
+      @_labelPrinter = labelPrinter
+
+    @didClose.once =>
+
+      if options.parseBool
+        result = parseBool result
+
+      if labelPrinter
+        @_labelPrinter = -> no
+
     @_open()
-
     @_loopSync()
-
-    result = @_close()
-
-    if options.parseBool
-      result = parseBool result
-
-    if hasLabel
-      @_labelPrinter = -> no
-
-    result
+    @_close() if @_reading
 
   _loopSync: ->
     buffer = Buffer 3
@@ -185,7 +190,7 @@ type.defineMethods
 
   _open: ->
 
-    @_close()
+    assert not @_reading, "Prompt is already reading!"
 
     @_reading = yes
     @_indent = log.indent
@@ -205,18 +210,20 @@ type.defineMethods
 
   _close: ->
 
-    if @_reading
+    assert @_reading, "Prompt is not reading!"
 
-      if @showCursorDuring
-        log.cursor.isHidden = @_cursorWasHidden
+    if @showCursorDuring
+      log.cursor.isHidden = @_cursorWasHidden
 
-      @_reading = no
-      @_async = null
+    @didClose.emit @_message
 
-      @_prevMessage = @_message
-      @_message = ""
+    @_reading = no
+    @_async = null
 
-      # @_history.index = @_history.push @_prevMessage
+    @_prevMessage = @_message
+    @_message = ""
+
+    # @_history.index = @_history.push @_prevMessage
 
     @_prevMessage
 

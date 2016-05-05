@@ -71,6 +71,9 @@ type.defineValues({
   didPressKey: function() {
     return Event();
   },
+  didClose: function() {
+    return Event();
+  },
   showCursorDuring: true,
   _reading: false,
   _printing: false,
@@ -82,7 +85,12 @@ type.defineValues({
   _indent: 0,
   _label: "",
   _labelLength: 0,
-  _labelPrinter: emptyFunction.thatReturns(emptyFunction.thatReturnsFalse)
+  _labelPrinter: emptyFunction.thatReturns(emptyFunction.thatReturnsFalse),
+  _mark: function() {
+    var TimeMarker;
+    TimeMarker = require("TimeMarker");
+    return TimeMarker();
+  }
 });
 
 type.initInstance(function() {
@@ -97,21 +105,20 @@ type.defineMethods({
     return this._readAsync(options);
   },
   _readAsync: function(options) {
-    var deferred, hasLabel, nextTick;
-    hasLabel = isType(options.label, Function);
-    if (hasLabel) {
-      this._labelPrinter = options.label;
+    var deferred, labelPrinter;
+    this._async = true;
+    if (isType(options.label, Function)) {
+      labelPrinter = options.label;
+    } else if (isType(options.label, String)) {
+      labelPrinter = function() {
+        return options.label;
+      };
     }
     deferred = Q.defer();
-    this._async = true;
     this._open();
-    nextTick = Q.defer();
-    Q.timeout(nextTick.promise, 1000).fail(function() {
-      return deferred.reject(Error("Asynchronous prompt failed unexpectedly. Try using `prompt.sync()` instead."));
-    });
     Q.nextTick((function(_this) {
       return function() {
-        nextTick.resolve();
+        deferred.resolve();
         return _this._loopAsync();
       };
     })(this));
@@ -154,27 +161,39 @@ type.defineMethods({
     })(this));
   },
   _readSync: function(options) {
-    var hasLabel, result;
+    var labelPrinter;
     if (options == null) {
       options = {};
     }
-    hasLabel = isType(options.label, Function);
-    if (hasLabel) {
-      this._labelPrinter = options.label;
-    }
     this._async = false;
-    this._open();
-    this._loopSync();
-    result = this._close();
-    if (options.parseBool) {
-      result = parseBool(result);
-    }
-    if (hasLabel) {
-      this._labelPrinter = function() {
-        return false;
+    if (isType(options.label, Function)) {
+      labelPrinter = options.label;
+    } else if (isType(options.label, String)) {
+      labelPrinter = function() {
+        return options.label;
       };
     }
-    return result;
+    if (labelPrinter) {
+      this._labelPrinter = labelPrinter;
+    }
+    this.didClose.once((function(_this) {
+      return function() {
+        var result;
+        if (options.parseBool) {
+          result = parseBool(result);
+        }
+        if (labelPrinter) {
+          return _this._labelPrinter = function() {
+            return false;
+          };
+        }
+      };
+    })(this));
+    this._open();
+    this._loopSync();
+    if (this._reading) {
+      return this._close();
+    }
   },
   _loopSync: function() {
     var buffer, length;
@@ -187,7 +206,7 @@ type.defineMethods({
     return log("");
   },
   _open: function() {
-    this._close();
+    assert(!this._reading, "Prompt is already reading!");
     this._reading = true;
     this._indent = log.indent;
     log.moat(1);
@@ -201,15 +220,15 @@ type.defineMethods({
     }
   },
   _close: function() {
-    if (this._reading) {
-      if (this.showCursorDuring) {
-        log.cursor.isHidden = this._cursorWasHidden;
-      }
-      this._reading = false;
-      this._async = null;
-      this._prevMessage = this._message;
-      this._message = "";
+    assert(this._reading, "Prompt is not reading!");
+    if (this.showCursorDuring) {
+      log.cursor.isHidden = this._cursorWasHidden;
     }
+    this.didClose.emit(this._message);
+    this._reading = false;
+    this._async = null;
+    this._prevMessage = this._message;
+    this._message = "";
     return this._prevMessage;
   },
   _input: function(char) {
