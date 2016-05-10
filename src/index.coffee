@@ -37,11 +37,6 @@ type.defineProperties
       else if oldValue? and oldValue.isTTY
         @_stream = null
 
-  inputMode:
-    value: "prompt"
-    willSet: ->
-      assert not @_reading, "Cannot set 'inputMode' while reading."
-
   isReading: get: ->
     @_reading
 
@@ -54,7 +49,7 @@ type.defineValues
 
   didPressKey: -> Event()
 
-  didClose: -> Event()
+  didClose: -> Event { maxRecursion: Infinity }
 
   showCursorDuring: yes
 
@@ -178,8 +173,12 @@ type.defineMethods
         @_labelPrinter = -> no
 
     @_open()
+
     @_loopSync()
+
     @_close() if @_reading
+
+    return @_prevMessage
 
   _loopSync: ->
     buffer = Buffer 3
@@ -190,7 +189,9 @@ type.defineMethods
 
   _open: ->
 
-    assert not @_reading, "Prompt is already reading!"
+    # Silently fail if already reading.
+    # To override, close the prompt and then call this method.
+    return if @_reading
 
     @_reading = yes
     @_indent = log.indent
@@ -215,17 +216,15 @@ type.defineMethods
     if @showCursorDuring
       log.cursor.isHidden = @_cursorWasHidden
 
-    @didClose.emit @_message
-
-    @_reading = no
     @_async = null
+    @_reading = no
 
+    # @_history.index = @_history.push @_message
     @_prevMessage = @_message
     @_message = ""
 
-    # @_history.index = @_history.push @_prevMessage
-
-    @_prevMessage
+    @didClose.emit @_prevMessage
+    return @_prevMessage
 
   _input: (char) ->
 
@@ -235,9 +234,7 @@ type.defineMethods
 
     log.pushIndent 0
 
-    x = log.cursor.x - @_labelLength
-
-    throw Error "'x' should never be under zero." unless x >= 0
+    x = Math.max 0, log.cursor.x - @_labelLength
 
     if x is @_message.length
       @_message += char

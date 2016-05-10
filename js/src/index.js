@@ -48,12 +48,6 @@ type.defineProperties({
       }
     }
   },
-  inputMode: {
-    value: "prompt",
-    willSet: function() {
-      return assert(!this._reading, "Cannot set 'inputMode' while reading.");
-    }
-  },
   isReading: {
     get: function() {
       return this._reading;
@@ -72,7 +66,9 @@ type.defineValues({
     return Event();
   },
   didClose: function() {
-    return Event();
+    return Event({
+      maxRecursion: 2e308
+    });
   },
   showCursorDuring: true,
   _reading: false,
@@ -192,8 +188,9 @@ type.defineMethods({
     this._open();
     this._loopSync();
     if (this._reading) {
-      return this._close();
+      this._close();
     }
+    return this._prevMessage;
   },
   _loopSync: function() {
     var buffer, length;
@@ -206,7 +203,9 @@ type.defineMethods({
     return log("");
   },
   _open: function() {
-    assert(!this._reading, "Prompt is already reading!");
+    if (this._reading) {
+      return;
+    }
     this._reading = true;
     this._indent = log.indent;
     log.moat(1);
@@ -224,11 +223,11 @@ type.defineMethods({
     if (this.showCursorDuring) {
       log.cursor.isHidden = this._cursorWasHidden;
     }
-    this.didClose.emit(this._message);
-    this._reading = false;
     this._async = null;
+    this._reading = false;
     this._prevMessage = this._message;
     this._message = "";
+    this.didClose.emit(this._prevMessage);
     return this._prevMessage;
   },
   _input: function(char) {
@@ -238,10 +237,7 @@ type.defineMethods({
     }
     this._printing = true;
     log.pushIndent(0);
-    x = log.cursor.x - this._labelLength;
-    if (!(x >= 0)) {
-      throw Error("'x' should never be under zero.");
-    }
+    x = Math.max(0, log.cursor.x - this._labelLength);
     if (x === this._message.length) {
       this._message += char;
       this._print(char);
