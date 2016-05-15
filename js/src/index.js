@@ -1,6 +1,4 @@
-var BINDINGS, Event, EventEmitter, FS, MODIFIERS, Null, Q, Type, addKeyPress, assert, assertType, emptyFunction, isType, log, parseBool, ref, stripAnsi, type;
-
-ref = require("type-utils"), Null = ref.Null, isType = ref.isType, assertType = ref.assertType, assert = ref.assert;
+var BINDINGS, Event, EventEmitter, FS, MODIFIERS, Null, Q, Type, addKeyPress, assert, assertType, emptyFunction, isType, log, parseBool, stripAnsi, type;
 
 EventEmitter = require("events").EventEmitter;
 
@@ -8,11 +6,19 @@ emptyFunction = require("emptyFunction");
 
 addKeyPress = require("keypress");
 
+assertType = require("assertType");
+
 stripAnsi = require("strip-ansi");
 
 parseBool = require("parse-bool");
 
+isType = require("isType");
+
+assert = require("assert");
+
 Event = require("event");
+
+Null = require("Null");
 
 Type = require("Type");
 

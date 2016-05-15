@@ -1,12 +1,15 @@
 
-{ Null, isType, assertType, assert } = require "type-utils"
 { EventEmitter } = require "events"
 
 emptyFunction = require "emptyFunction"
 addKeyPress = require "keypress"
+assertType = require "assertType"
 stripAnsi = require "strip-ansi"
 parseBool = require "parse-bool"
+isType = require "isType"
+assert = require "assert"
 Event = require "event"
+Null = require "Null"
 Type = require "Type"
 log = require "log"
 FS = require "fs"
