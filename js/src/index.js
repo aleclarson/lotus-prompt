@@ -206,7 +206,6 @@ type.defineMethods({
     if (this._reading) {
       return this._loopSync();
     }
-    return log("");
   },
   _open: function() {
     if (this._reading) {

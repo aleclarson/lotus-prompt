@@ -30,23 +30,26 @@ module.exports = {
   "tab": function() {},
   "tab+shift": function() {},
   "backspace": function() {
-    var cursorWasHidden, halfOne, halfTwo, x;
-    if (this._message.length === 0) {
-      return;
-    }
+    var cursorWasHidden, messageAfter, messageBefore, x;
     x = log.cursor.x - this._labelLength;
     if (x <= 0) {
       return;
     }
     cursorWasHidden = log.cursor.isHidden;
     log.cursor.isHidden = true;
-    log.clearLine();
-    this._printLabel();
-    halfOne = this._message.slice(0, x - 1);
-    halfTwo = this._message.slice(x);
-    this._print(this._message = halfOne + halfTwo);
-    log.cursor.x -= halfTwo.length;
-    return log.cursor.isHidden = cursorWasHidden;
+    log.cursor.x -= 1;
+    messageBefore = this._message.slice(0, x - 1);
+    messageAfter = this._message.slice(x);
+    if (messageAfter.length) {
+      this._print(messageAfter + " ");
+      this._message = messageBefore + messageAfter;
+      log.cursor.x -= messageAfter.length + 1;
+    } else {
+      this._print(" ");
+      log.cursor.x -= 1;
+      this._message = messageBefore;
+    }
+    log.cursor.isHidden = cursorWasHidden;
   },
   "c+ctrl": function() {
     var length;

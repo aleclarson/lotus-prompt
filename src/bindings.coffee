@@ -51,25 +51,33 @@ module.exports =
     # no-op
 
   "backspace": ->
-    # FIXME: This shouldn't reprint the entire line.
 
-    return if @_message.length is 0
-
+    # You can't delete the prompt label.
     x = log.cursor.x - @_labelLength
 
+    # The cursor is at the beginning of the line.
     return if x <= 0
 
     cursorWasHidden = log.cursor.isHidden
     log.cursor.isHidden = yes
-    log.clearLine()
-    @_printLabel()
 
-    halfOne = @_message.slice 0, x - 1
-    halfTwo = @_message.slice x
-    @_print @_message = halfOne + halfTwo
+    # Move the cursor left one character.
+    log.cursor.x -= 1
 
-    log.cursor.x -= halfTwo.length
+    messageBefore = @_message.slice 0, x - 1
+    messageAfter = @_message.slice x
+    if messageAfter.length
+      @_print messageAfter + " "
+      @_message = messageBefore + messageAfter
+      log.cursor.x -= messageAfter.length + 1
+
+    else
+      @_print " "       # Overwrite the character with whitespace.
+      log.cursor.x -= 1 # Pretend like the whitespace isnt there.
+      @_message = messageBefore
+
     log.cursor.isHidden = cursorWasHidden
+    return
 
   "c+ctrl": ->
     { length } = @_message

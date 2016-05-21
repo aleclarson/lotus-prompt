@@ -188,7 +188,7 @@ type.defineMethods
     length = FS.readSync @stdin.fd, buffer, 0, 3
     @_stream.emit "data", buffer.slice(0, length).toString()
     return @_loopSync() if @_reading
-    log "" # Prevent stalling.
+    # log "" # TODO: Does this actually prevent stalling?
 
   _open: ->
 
