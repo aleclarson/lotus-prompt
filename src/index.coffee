@@ -84,7 +84,7 @@ type.defineValues
 
   _labelLength: 0
 
-  _labelPrinter: emptyFunction.thatReturns emptyFunction.thatReturnsFalse
+  _labelPrinter: -> emptyFunction.thatReturnsFalse
 
   _mark: ->
     TimeMarker = require "TimeMarker"
@@ -105,11 +105,7 @@ type.defineMethods
 
     @_async = yes
 
-    if isType options.label, Function
-      labelPrinter = options.label
-
-    else if isType options.label, String
-      labelPrinter = -> options.label
+    @_setLabel options.label
 
     deferred = Q.defer()
 
@@ -124,7 +120,7 @@ type.defineMethods
 
   _writeAsync: (data) ->
 
-    return unless @_reading
+    return if not @_reading
 
     # Notify the keypress detector.
     @_stream.emit "data", data
@@ -134,19 +130,17 @@ type.defineMethods
 
   _cancelAsync: ->
 
-    return unless @_reading
+    return no if not @_reading
 
     result = @_close()
 
-    if options.parseBool
-      result = parseBool result
-
-    if hasLabel
-      @_labelPrinter = -> no
+    # TODO: Support 'options.parseBool' in async mode.
+    # if options.parseBool
+    #   result = parseBool result
 
     deferred.resolve result
 
-    yes
+    return yes
 
   _loopAsync: ->
     buffer = Buffer 3
@@ -158,22 +152,7 @@ type.defineMethods
 
     @_async = no
 
-    if isType options.label, Function
-      labelPrinter = options.label
-
-    else if isType options.label, String
-      labelPrinter = -> options.label
-
-    if labelPrinter
-      @_labelPrinter = labelPrinter
-
-    @didClose.once =>
-
-      if options.parseBool
-        result = parseBool result
-
-      if labelPrinter
-        @_labelPrinter = -> no
+    @_setLabel options.label
 
     @_open()
 
@@ -181,7 +160,23 @@ type.defineMethods
 
     @_close() if @_reading
 
+    if options.parseBool
+      return parseBool @_prevMessage
+
     return @_prevMessage
+
+  _setLabel: (label) ->
+
+    if isType label, Function
+      printLabel = label
+
+    else if isType label, String
+      printLabel = -> label
+
+    if printLabel
+      @_labelPrinter = printLabel
+      @didClose.once => @_labelPrinter = emptyFunction.thatReturnsFalse
+    return
 
   _loopSync: ->
     buffer = Buffer 3
@@ -231,7 +226,7 @@ type.defineMethods
 
   _input: (char) ->
 
-    return unless char?
+    return if not char?
 
     @_printing = yes
 
@@ -261,7 +256,7 @@ type.defineMethods
 
   _keypress: (char, key) ->
 
-    return log "" unless @_reading
+    return if not @_reading
 
     hasModifier = no
 
@@ -304,33 +299,3 @@ type.defineMethods
     @_printing = no
 
 module.exports = type.construct()
-
-# TODO: Handle asynchronous rewriting?
-# hooker.hook log, "_printChunk", pre: ({ message }) ->
-#
-#   # Only rewrite the prompt's line during asynchronous reading.
-#   return if !prompt._async?
-#
-#   # Ignore printing by the prompt itself.
-#   return if prompt._printing
-#
-#   # Cache the contents of the prompt's line.
-#   prompt._line =
-#     contents: @line.contents
-#     length: @line.length
-#     x: log.cursor.x
-#
-#   if prompt._line.contents isnt prompt.label + prompt._message
-#     throw Error "Line ##{@line.index} is not the prompt's line..."
-#
-#   log.clearLine()
-#
-# log.on "chunk", ->
-#   return unless (line = prompt._line)?
-#   prompt._line = null
-#   log.line.length = line.length
-#   log.line.contents = line.contents
-#   prompt._printing = yes
-#   log line.contents
-#   log.cursor.left line.length - line.x
-#   prompt._printing = no

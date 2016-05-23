@@ -87,7 +87,9 @@ type.defineValues({
   _indent: 0,
   _label: "",
   _labelLength: 0,
-  _labelPrinter: emptyFunction.thatReturns(emptyFunction.thatReturnsFalse),
+  _labelPrinter: function() {
+    return emptyFunction.thatReturnsFalse;
+  },
   _mark: function() {
     var TimeMarker;
     TimeMarker = require("TimeMarker");
@@ -107,15 +109,9 @@ type.defineMethods({
     return this._readAsync(options);
   },
   _readAsync: function(options) {
-    var deferred, labelPrinter;
+    var deferred;
     this._async = true;
-    if (isType(options.label, Function)) {
-      labelPrinter = options.label;
-    } else if (isType(options.label, String)) {
-      labelPrinter = function() {
-        return options.label;
-      };
-    }
+    this._setLabel(options.label);
     deferred = Q.defer();
     this._open();
     Q.nextTick((function(_this) {
@@ -136,17 +132,9 @@ type.defineMethods({
   _cancelAsync: function() {
     var result;
     if (!this._reading) {
-      return;
+      return false;
     }
     result = this._close();
-    if (options.parseBool) {
-      result = parseBool(result);
-    }
-    if (hasLabel) {
-      this._labelPrinter = function() {
-        return false;
-      };
-    }
     deferred.resolve(result);
     return true;
   },
@@ -163,40 +151,38 @@ type.defineMethods({
     })(this));
   },
   _readSync: function(options) {
-    var labelPrinter;
     if (options == null) {
       options = {};
     }
     this._async = false;
-    if (isType(options.label, Function)) {
-      labelPrinter = options.label;
-    } else if (isType(options.label, String)) {
-      labelPrinter = function() {
-        return options.label;
-      };
-    }
-    if (labelPrinter) {
-      this._labelPrinter = labelPrinter;
-    }
-    this.didClose.once((function(_this) {
-      return function() {
-        var result;
-        if (options.parseBool) {
-          result = parseBool(result);
-        }
-        if (labelPrinter) {
-          return _this._labelPrinter = function() {
-            return false;
-          };
-        }
-      };
-    })(this));
+    this._setLabel(options.label);
     this._open();
     this._loopSync();
     if (this._reading) {
       this._close();
     }
+    if (options.parseBool) {
+      return parseBool(this._prevMessage);
+    }
     return this._prevMessage;
+  },
+  _setLabel: function(label) {
+    var printLabel;
+    if (isType(label, Function)) {
+      printLabel = label;
+    } else if (isType(label, String)) {
+      printLabel = function() {
+        return label;
+      };
+    }
+    if (printLabel) {
+      this._labelPrinter = printLabel;
+      this.didClose.once((function(_this) {
+        return function() {
+          return _this._labelPrinter = emptyFunction.thatReturnsFalse;
+        };
+      })(this));
+    }
   },
   _loopSync: function() {
     var buffer, length;
@@ -261,7 +247,7 @@ type.defineMethods({
   _keypress: function(char, key) {
     var action, command, hasModifier, i, len, modifier;
     if (!this._reading) {
-      return log("");
+      return;
     }
     hasModifier = false;
     if (key != null) {
