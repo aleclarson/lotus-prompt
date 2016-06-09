@@ -6,6 +6,8 @@ addKeyPress = require "keypress"
 assertType = require "assertType"
 stripAnsi = require "strip-ansi"
 parseBool = require "parse-bool"
+immediate = require "immediate"
+Promise = require "Promise"
 isType = require "isType"
 assert = require "assert"
 Event = require "event"
@@ -13,7 +15,6 @@ Null = require "Null"
 Type = require "Type"
 log = require "log"
 FS = require "fs"
-Q = require "q"
 
 BINDINGS = require "./bindings"
 MODIFIERS = [ "ctrl", "meta", "shift" ]
@@ -107,16 +108,16 @@ type.defineMethods
 
     @_setLabel options.label
 
-    deferred = Q.defer()
+    deferred = Promise.defer()
 
     @_open()
 
     # Wait for the first keypress.
-    Q.nextTick =>
+    immediate =>
       deferred.resolve()
       @_loopAsync()
 
-    deferred.promise
+    return deferred.promise
 
   _writeAsync: (data) ->
 

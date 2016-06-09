@@ -4,17 +4,18 @@
   "main": "js/src/index",
   "dependencies": {
     "Null": "aleclarson/Null#1.0.0",
+    "Promise": "aleclarson/Promise#1.0.0",
     "TimeMarker": "aleclarson/TimeMarker#1.0.0",
     "Type": "aleclarson/Type#1.0.0",
     "assert": "aleclarson/assert#1.0.0",
     "assertType": "aleclarson/assertType#1.0.0",
     "emptyFunction": "aleclarson/emptyFunction#1.0.0",
     "event": "aleclarson/event#2.0.0",
+    "immediate": "aleclarson/immediate#4.0.0",
     "isType": "aleclarson/isType#1.0.0",
     "keypress": "^0.2.1",
     "log": "aleclarson/log#1.0.0",
     "parse-bool": "aleclarson/parse-bool#0.0.1",
-    "q": "aleclarson/q#1.0.0",
     "strip-ansi": "^2.0.1"
   },
   "lotus": {

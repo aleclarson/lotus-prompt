@@ -1,4 +1,4 @@
-var BINDINGS, Event, EventEmitter, FS, MODIFIERS, Null, Q, Type, addKeyPress, assert, assertType, emptyFunction, isType, log, parseBool, stripAnsi, type;
+var BINDINGS, Event, EventEmitter, FS, MODIFIERS, Null, Promise, Type, addKeyPress, assert, assertType, emptyFunction, immediate, isType, log, parseBool, stripAnsi, type;
 
 EventEmitter = require("events").EventEmitter;
 
@@ -11,6 +11,10 @@ assertType = require("assertType");
 stripAnsi = require("strip-ansi");
 
 parseBool = require("parse-bool");
+
+immediate = require("immediate");
+
+Promise = require("Promise");
 
 isType = require("isType");
 
@@ -25,8 +29,6 @@ Type = require("Type");
 log = require("log");
 
 FS = require("fs");
-
-Q = require("q");
 
 BINDINGS = require("./bindings");
 
@@ -112,9 +114,9 @@ type.defineMethods({
     var deferred;
     this._async = true;
     this._setLabel(options.label);
-    deferred = Q.defer();
+    deferred = Promise.defer();
     this._open();
-    Q.nextTick((function(_this) {
+    immediate((function(_this) {
       return function() {
         deferred.resolve();
         return _this._loopAsync();
