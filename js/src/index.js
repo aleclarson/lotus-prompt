@@ -20,7 +20,7 @@ isType = require("isType");
 
 assert = require("assert");
 
-Event = require("event");
+Event = require("Event");
 
 Null = require("Null");
 
@@ -74,9 +74,7 @@ type.defineValues({
     return Event();
   },
   didClose: function() {
-    return Event({
-      maxRecursion: 2e308
-    });
+    return Event();
   },
   showCursorDuring: true,
   _reading: false,

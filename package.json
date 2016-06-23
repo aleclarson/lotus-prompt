@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "main": "js/src/index",
   "dependencies": {
+    "Event": "aleclarson/Event#2.0.0",
     "Null": "aleclarson/Null#1.0.0",
     "Promise": "aleclarson/Promise#1.0.0",
     "TimeMarker": "aleclarson/TimeMarker#1.0.0",
@@ -10,7 +11,6 @@
     "assert": "aleclarson/assert#1.0.0",
     "assertType": "aleclarson/assertType#1.0.0",
     "emptyFunction": "aleclarson/emptyFunction#1.0.0",
-    "event": "aleclarson/event#2.0.0",
     "immediate": "aleclarson/immediate#4.0.0",
     "isType": "aleclarson/isType#1.0.0",
     "keypress": "^0.2.1",

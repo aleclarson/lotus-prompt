@@ -10,7 +10,7 @@ immediate = require "immediate"
 Promise = require "Promise"
 isType = require "isType"
 assert = require "assert"
-Event = require "event"
+Event = require "Event"
 Null = require "Null"
 Type = require "Type"
 log = require "log"
@@ -53,7 +53,7 @@ type.defineValues
 
   didPressKey: -> Event()
 
-  didClose: -> Event { maxRecursion: Infinity }
+  didClose: -> Event()
 
   showCursorDuring: yes
 
