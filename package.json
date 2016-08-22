@@ -11,7 +11,7 @@
     "assert": "aleclarson/assert#1.0.0",
     "assertType": "aleclarson/assertType#2.0.0",
     "emptyFunction": "aleclarson/emptyFunction#1.0.0",
-    "immediate": "aleclarson/immediate#4.0.0",
+    "immediate": "aleclarson/immediate#4.1.0",
     "isType": "aleclarson/isType#1.0.0",
     "keypress": "^0.2.1",
     "log": "aleclarson/log#1.0.0",
