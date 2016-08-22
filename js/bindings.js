@@ -102,4 +102,4 @@ module.exports = {
   }
 };
 
-//# sourceMappingURL=../../map/src/bindings.map
+//# sourceMappingURL=map/bindings.map

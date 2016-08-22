@@ -303,4 +303,4 @@ type.defineMethods({
 
 module.exports = type.construct();
 
-//# sourceMappingURL=../../map/src/index.map
+//# sourceMappingURL=map/index.map

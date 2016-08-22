@@ -1,7 +1,7 @@
 {
   "name": "lotus-prompt",
   "version": "1.0.0",
-  "main": "js/src/index",
+  "main": "js/index",
   "dependencies": {
     "Event": "aleclarson/Event#2.0.0",
     "Null": "aleclarson/Null#1.0.0",
