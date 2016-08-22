@@ -47,7 +47,7 @@ type.defineProperties
   _message:
     value: ""
     didSet: (message) ->
-      assertType message, [ String, Null ]
+      assertType message, String.or Null
 
 type.defineValues
 

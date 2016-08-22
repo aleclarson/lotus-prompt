@@ -64,7 +64,7 @@ type.defineProperties({
   _message: {
     value: "",
     didSet: function(message) {
-      return assertType(message, [String, Null]);
+      return assertType(message, String.or(Null));
     }
   }
 });
