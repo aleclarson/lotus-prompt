@@ -36,69 +36,61 @@ MODIFIERS = ["ctrl", "meta", "shift"];
 
 type = Type("Prompt");
 
-type.defineProperties({
+type.defineValues(function() {
+  return {
+    didPressKey: Event(),
+    didClose: Event(),
+    showCursorDuring: true,
+    _reading: false,
+    _printing: false,
+    _async: null,
+    _message: "",
+    _prevMessage: null,
+    _stream: null,
+    _stdin: null,
+    _cursorWasHidden: false,
+    _line: null,
+    _indent: 0,
+    _label: "",
+    _labelLength: 0,
+    _labelPrinter: emptyFunction.thatReturnsFalse
+  };
+});
+
+type.initInstance(function() {
+  return this.stdin = process.stdin;
+});
+
+type.defineGetters({
+  isReading: function() {
+    return this._reading;
+  }
+});
+
+type.definePrototype({
   stdin: {
-    value: null,
-    didSet: function(newValue, oldValue) {
+    get: function() {
+      return this._stdin;
+    },
+    set: function(newValue, oldValue) {
       if (newValue === oldValue) {
         return;
       }
-      if ((newValue != null) && newValue.isTTY) {
+      if (newValue && newValue.isTTY) {
         newValue.setRawMode(true);
+        this._stdin = newValue;
         this._stream = new EventEmitter;
         this._stream.write = function(chunk) {
           return newValue.write(chunk);
         };
         this._stream.on("keypress", this._keypress.bind(this));
-        return addKeyPress(this._stream);
-      } else if ((oldValue != null) && oldValue.isTTY) {
-        return this._stream = null;
+        addKeyPress(this._stream);
+      } else if (oldValue && oldValue.isTTY) {
+        this._stream = null;
+        this._stdin = null;
       }
     }
-  },
-  isReading: {
-    get: function() {
-      return this._reading;
-    }
-  },
-  _message: {
-    value: "",
-    didSet: function(message) {
-      return assertType(message, String.or(Null));
-    }
   }
-});
-
-type.defineValues({
-  didPressKey: function() {
-    return Event();
-  },
-  didClose: function() {
-    return Event();
-  },
-  showCursorDuring: true,
-  _reading: false,
-  _printing: false,
-  _async: null,
-  _prevMessage: null,
-  _stream: null,
-  _cursorWasHidden: false,
-  _line: null,
-  _indent: 0,
-  _label: "",
-  _labelLength: 0,
-  _labelPrinter: function() {
-    return emptyFunction.thatReturnsFalse;
-  },
-  _mark: function() {
-    var TimeMarker;
-    TimeMarker = require("TimeMarker");
-    return TimeMarker();
-  }
-});
-
-type.initInstance(function() {
-  return this.stdin = process.stdin;
 });
 
 type.defineMethods({
@@ -177,11 +169,11 @@ type.defineMethods({
     }
     if (printLabel) {
       this._labelPrinter = printLabel;
-      this.didClose.once((function(_this) {
+      this.didClose(1, (function(_this) {
         return function() {
           return _this._labelPrinter = emptyFunction.thatReturnsFalse;
         };
-      })(this));
+      })(this)).start();
     }
   },
   _loopSync: function() {

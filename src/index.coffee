@@ -26,34 +26,11 @@ MODIFIERS = [ "ctrl", "meta", "shift" ]
 
 type = Type "Prompt"
 
-type.defineProperties
+type.defineValues ->
 
-  stdin:
-    value: null
-    didSet: (newValue, oldValue) ->
-      return if newValue is oldValue
-      if newValue? and newValue.isTTY
-        newValue.setRawMode yes
-        @_stream = new EventEmitter
-        @_stream.write = (chunk) -> newValue.write chunk
-        @_stream.on "keypress", @_keypress.bind this
-        addKeyPress @_stream
-      else if oldValue? and oldValue.isTTY
-        @_stream = null
+  didPressKey: Event()
 
-  isReading: get: ->
-    @_reading
-
-  _message:
-    value: ""
-    didSet: (message) ->
-      assertType message, String.or Null
-
-type.defineValues
-
-  didPressKey: -> Event()
-
-  didClose: -> Event()
+  didClose: Event()
 
   showCursorDuring: yes
 
@@ -71,9 +48,13 @@ type.defineValues
 
   _async: null
 
+  _message: ""
+
   _prevMessage: null
 
   _stream: null
+
+  _stdin: null
 
   _cursorWasHidden: no
 
@@ -85,14 +66,36 @@ type.defineValues
 
   _labelLength: 0
 
-  _labelPrinter: -> emptyFunction.thatReturnsFalse
-
-  _mark: ->
-    TimeMarker = require "TimeMarker"
-    TimeMarker()
+  _labelPrinter: emptyFunction.thatReturnsFalse
 
 type.initInstance ->
   @stdin = process.stdin
+
+#
+# Prototype-related
+#
+
+type.defineGetters
+
+  isReading: -> @_reading
+
+type.definePrototype
+
+  stdin:
+    get: -> @_stdin
+    set: (newValue, oldValue) ->
+      return if newValue is oldValue
+      if newValue and newValue.isTTY
+        newValue.setRawMode yes
+        @_stdin = newValue
+        @_stream = new EventEmitter
+        @_stream.write = (chunk) -> newValue.write chunk
+        @_stream.on "keypress", @_keypress.bind this
+        addKeyPress @_stream
+      else if oldValue and oldValue.isTTY
+        @_stream = null
+        @_stdin = null
+      return
 
 type.defineMethods
 
@@ -176,7 +179,9 @@ type.defineMethods
 
     if printLabel
       @_labelPrinter = printLabel
-      @didClose.once => @_labelPrinter = emptyFunction.thatReturnsFalse
+      @didClose 1, =>
+        @_labelPrinter = emptyFunction.thatReturnsFalse
+      .start()
     return
 
   _loopSync: ->
