@@ -14,7 +14,7 @@ Event = require "Event"
 Null = require "Null"
 Type = require "Type"
 log = require "log"
-FS = require "fs"
+fs = require "fs"
 
 BINDINGS = require "./bindings"
 MODIFIERS = [ "ctrl", "meta", "shift" ]
@@ -31,8 +31,6 @@ type.defineValues ->
   didPressKey: Event()
 
   didClose: Event()
-
-  showCursorDuring: yes
 
   # TODO: Implement multi-line mode.
   # isMultiline: no
@@ -55,8 +53,6 @@ type.defineValues ->
   _stream: null
 
   _stdin: null
-
-  _cursorWasHidden: no
 
   _line: null
 
@@ -148,7 +144,7 @@ type.defineMethods
 
   _loopAsync: ->
     buffer = Buffer 3
-    FS.read @stdin.fd, buffer, 0, 3, null, (error, length) =>
+    fs.read @stdin.fd, buffer, 0, 3, null, (error, length) =>
       throw error if error?
       @_writeAsync? buffer.slice(0, length).toString()
 
@@ -186,10 +182,9 @@ type.defineMethods
 
   _loopSync: ->
     buffer = Buffer 3
-    length = FS.readSync @stdin.fd, buffer, 0, 3
+    length = fs.readSync @stdin.fd, buffer, 0, 3
     @_stream.emit "data", buffer.slice(0, length).toString()
-    return @_loopSync() if @_reading
-    # log "" # TODO: Does this actually prevent stalling?
+    @_reading and @_loopSync()
 
   _open: ->
 
@@ -202,23 +197,16 @@ type.defineMethods
 
     log.moat 1
     @_printLabel()
+    log.flush()
 
-    @_cursorWasHidden = log.cursor.isHidden
-
-    if @showCursorDuring
-      log.cursor.isHidden = no
-
-    if log.cursor.x < @_labelLength
-      log.cursor.x = @_labelLength
+    if log.offset < @_labelLength
+      log.setOffset @_labelLength
 
     return
 
   _close: ->
 
     assert @_reading, "Prompt is not reading!"
-
-    if @showCursorDuring
-      log.cursor.isHidden = @_cursorWasHidden
 
     @_async = null
     @_reading = no
@@ -238,7 +226,7 @@ type.defineMethods
 
     log.pushIndent 0
 
-    x = Math.max 0, log.cursor.x - @_labelLength
+    x = Math.max 0, log.offset - @_labelLength
 
     if x is @_message.length
       @_message += char
@@ -252,12 +240,12 @@ type.defineMethods
       log.line.contents = @_label + a
       log.line.length = @_labelLength + stripAnsi(a).length
       @_print char + b
-      log.cursor.x = log.line.length - stripAnsi(b).length
+      log.setOffset log.line.length - stripAnsi(b).length
 
     log.popIndent()
+    log.flush()
 
     @_printing = no
-
     return
 
   _keypress: (char, key) ->

@@ -14,7 +14,7 @@
     "immediate": "aleclarson/immediate#4.1.0",
     "isType": "aleclarson/isType#1.0.0",
     "keypress": "^0.2.1",
-    "log": "aleclarson/log#1.0.0",
+    "log": "aleclarson/log#2.0.0",
     "parse-bool": "aleclarson/parse-bool#0.0.1",
     "strip-ansi": "^2.0.1"
   },
