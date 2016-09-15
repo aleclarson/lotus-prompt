@@ -1,7 +1,14 @@
 {
-  "name": "lotus-prompt",
+  "name": "prompt",
   "version": "1.0.0",
   "main": "js/index",
+  "plugins": [
+    "lotus-coffee"
+  ],
+  "scripts": {
+    "build": "coffee -cb -o js src",
+    "postinstall": "postinstall-build js 'npm run build'"
+  },
   "dependencies": {
     "Event": "aleclarson/Event#2.0.1",
     "Null": "aleclarson/Null#1.0.0",
@@ -16,15 +23,14 @@
     "keypress": "^0.2.1",
     "log": "aleclarson/log#2.0.0",
     "parse-bool": "aleclarson/parse-bool#0.0.1",
+    "postinstall-build": "0.2.x",
     "strip-ansi": "^2.0.1"
   },
-  "lotus": {
-    "plugins": [
-      "lotus-coffee"
-    ],
-    "implicitDependencies": [
-      "events",
-      "fs"
-    ]
-  }
+  "devDependencies": {
+    "coffee-script": "1.9.x"
+  },
+  "implicitDependencies": [
+    "events",
+    "fs"
+  ]
 }
