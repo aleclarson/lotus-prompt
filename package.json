@@ -12,7 +12,7 @@
   "dependencies": {
     "Event": "aleclarson/Event#2.0.1",
     "Null": "aleclarson/Null#1.0.0",
-    "Promise": "aleclarson/Promise#1.0.0",
+    "Promise": "aleclarson/Promise#2.0.0",
     "TimeMarker": "aleclarson/TimeMarker#1.0.0",
     "Type": "aleclarson/Type#1.1.0",
     "assert": "aleclarson/assert#1.0.0",
