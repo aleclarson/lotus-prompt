@@ -1,7 +1,7 @@
 {
   "name": "prompt",
   "version": "1.0.0",
-  "main": "js/index",
+  "main": "js/Prompt",
   "plugins": [
     "lotus-coffee"
   ],
@@ -10,18 +10,16 @@
     "postinstall": "npm run build"
   },
   "dependencies": {
-    "Event": "aleclarson/Event#2.0.1",
-    "Null": "aleclarson/Null#1.0.0",
-    "Promise": "aleclarson/Promise#2.0.0",
-    "TimeMarker": "aleclarson/TimeMarker#1.0.0",
-    "Type": "aleclarson/Type#1.1.0",
-    "assert": "aleclarson/assert#1.0.0",
-    "assertType": "aleclarson/assertType#2.0.0",
+    "Event": "aleclarson/Event#3.1.2",
+    "Promise": "aleclarson/Promise#2.1.0",
+    "Type": "aleclarson/Type#2.2.0",
+    "assertType": "aleclarson/assertType#2.0.1",
+    "didExit": "aleclarson/didExit#1.0.1",
     "emptyFunction": "aleclarson/emptyFunction#1.0.0",
-    "immediate": "aleclarson/immediate#4.1.0",
-    "isType": "aleclarson/isType#1.0.0",
+    "immediate": "aleclarson/immediate#4.1.1",
+    "isType": "aleclarson/isType#1.0.1",
     "keypress": "^0.2.1",
-    "log": "aleclarson/log#2.0.0",
+    "log": "aleclarson/log#2.0.1",
     "parse-bool": "aleclarson/parse-bool#0.0.1",
     "strip-ansi": "^2.0.1"
   },

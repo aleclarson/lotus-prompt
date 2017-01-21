@@ -1,36 +1,24 @@
 
-{ EventEmitter } = require "events"
-
 emptyFunction = require "emptyFunction"
-addKeyPress = require "keypress"
-assertType = require "assertType"
 stripAnsi = require "strip-ansi"
 parseBool = require "parse-bool"
 immediate = require "immediate"
 Promise = require "Promise"
 isType = require "isType"
-assert = require "assert"
 Event = require "Event"
-Null = require "Null"
 Type = require "Type"
 log = require "log"
 fs = require "fs"
 
-BINDINGS = require "./bindings"
-MODIFIERS = [ "ctrl", "meta", "shift" ]
-
-# TODO: Enable prompt history.
-# history = log.History()
-# history.file = Path.resolve __dirname + "/../../.prompt_history"
-# history.index = history.cache.length
+KeyEmitter = require "./KeyEmitter"
 
 type = Type "Prompt"
 
 type.defineValues ->
 
-  didPressKey: Event()
-
   didClose: Event()
+
+  showCursorDuring: yes
 
   # TODO: Implement multi-line mode.
   # isMultiline: no
@@ -46,17 +34,15 @@ type.defineValues ->
 
   _async: null
 
-  _message: ""
-
-  _prevMessage: null
-
-  _stream: null
-
-  _stdin: null
+  _caretWasHiding: no
 
   _line: null
 
   _indent: 0
+
+  _message: ""
+
+  _prevMessage: null
 
   _label: ""
 
@@ -64,8 +50,20 @@ type.defineValues ->
 
   _labelPrinter: emptyFunction.thatReturnsFalse
 
-type.initInstance ->
-  @stdin = process.stdin
+  _keyListener: KeyEmitter
+    .didPressKey @_keypress.bind this
+    .start()
+
+#
+# Prototype
+#
+
+type.definePrototype
+
+  isReading:
+    get: -> @_reading
+
+  _caret: require "./Caret"
 
 #
 # Prototype-related
@@ -119,14 +117,10 @@ type.defineMethods
     return deferred.promise
 
   _writeAsync: (data) ->
-
-    return if not @_reading
-
-    # Notify the keypress detector.
-    @_stream.emit "data", data
-
-    # Wait for the next keypress.
-    @_loopAsync()
+    if @_reading
+      KeyEmitter.send data
+      @_loopAsync()
+    return
 
   _cancelAsync: ->
 
@@ -144,7 +138,7 @@ type.defineMethods
 
   _loopAsync: ->
     buffer = Buffer 3
-    fs.read @stdin.fd, buffer, 0, 3, null, (error, length) =>
+    fs.read process.stdin.fd, buffer, 0, 3, null, (error, length) =>
       throw error if error?
       @_writeAsync? buffer.slice(0, length).toString()
 
@@ -182,9 +176,9 @@ type.defineMethods
 
   _loopSync: ->
     buffer = Buffer 3
-    length = fs.readSync @stdin.fd, buffer, 0, 3
-    @_stream.emit "data", buffer.slice(0, length).toString()
-    @_reading and @_loopSync()
+    length = fs.readSync process.stdin.fd, buffer, 0, 3
+    KeyEmitter.send buffer.slice(0, length).toString()
+    return @_loopSync() if @_reading
 
   _open: ->
 
@@ -199,14 +193,23 @@ type.defineMethods
     @_printLabel()
     log.flush()
 
-    if log.offset < @_labelLength
-      log.setOffset @_labelLength
+    @_caretWasHiding = @_caret.isHidden
+
+    if @showCursorDuring
+      @_caret.isHidden = no
+
+    if @_caret.x < @_labelLength
+      @_caret.x = @_labelLength
 
     return
 
   _close: ->
 
-    assert @_reading, "Prompt is not reading!"
+    unless @_reading
+      throw Error "Prompt is not reading!"
+
+    if @showCursorDuring
+      @_caret.isHidden = @_caretWasHiding
 
     @_async = null
     @_reading = no
@@ -218,65 +221,48 @@ type.defineMethods
     @didClose.emit @_prevMessage
     return @_prevMessage
 
-  _input: (char) ->
+  _keypress: do ->
+    bindings = require "./KeyBindings"
+    return (event) ->
+      action = bindings[event.command]
+      if isType action, Function
+      then action.call this
+      else @_input event
 
-    return if not char?
+  _input: (event) ->
+
+    return unless event.char?
+    return if event.modifier? and not /[a-z]/i.test event.char
 
     @_printing = yes
-
     log.pushIndent 0
 
-    x = Math.max 0, log.offset - @_labelLength
+    x = Math.max 0, @_caret.x - @_labelLength
 
     if x is @_message.length
-      @_message += char
-      @_print char
+      @_message += event.char
+      @_print event.char
 
     # FIXME: Ansi is not supported when slicing!
     else
       a = @_message.slice 0, x
       b = @_message.slice x
-      @_message = a + char + b
+      @_message = a + event.char + b
       log.line.contents = @_label + a
       log.line.length = @_labelLength + stripAnsi(a).length
-      @_print char + b
-      log.setOffset log.line.length - stripAnsi(b).length
+
+      @_print event.char + b
+      @_caret.x = log.line.length - stripAnsi(b).length
 
     log.popIndent()
-    log.flush()
-
     @_printing = no
     return
 
-  _keypress: (char, key) ->
-
-    return if not @_reading
-
-    hasModifier = no
-
-    if key?
-      command = key.name
-      for modifier in MODIFIERS
-        if key[modifier] is yes
-          hasModifier = yes
-          command += "+" + modifier
-    else
-      command = char
-
-    @didPressKey.emit { command, key, char }
-
-    action = BINDINGS[command]
-
-    return action.call this if action instanceof Function
-
-    @_input char if !hasModifier or /[a-z]/i.test char
-
   _print: (chunk) ->
-    @_printing = yes
     log.pushIndent @_indent
     log._printToChunk chunk
     log.popIndent()
-    @_printing = no
+    return
 
   _printLabel: ->
     @_printing = yes
