@@ -30,9 +30,6 @@ type.defineGetters
 
   didPressKey: -> @_didPressKey.listenable
 
-log = require "log"
-eventHistory = []
-
 type.defineMethods
 
   send: (data) ->
@@ -46,17 +43,7 @@ type.defineMethods
     if modifier = @_getModifier key
       command += "+" + modifier
 
-    event = {char, key, command, modifier}
-    if eventHistory.length < 5
-    then eventHistory.push event
-    else
-      log.moat 1
-      log.format eventHistory
-      log.moat 1
-      log.flush()
-      eventHistory = []
-
-    @_didPressKey.emit event
+    @_didPressKey.emit {char, key, command, modifier}
     return
 
   _getModifier: (key) ->

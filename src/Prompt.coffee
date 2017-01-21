@@ -1,4 +1,6 @@
 
+{caret} = log = require "log"
+
 emptyFunction = require "emptyFunction"
 stripAnsi = require "strip-ansi"
 parseBool = require "parse-bool"
@@ -7,7 +9,6 @@ Promise = require "Promise"
 isType = require "isType"
 Event = require "Event"
 Type = require "Type"
-log = require "log"
 fs = require "fs"
 
 KeyEmitter = require "./KeyEmitter"
@@ -58,38 +59,9 @@ type.defineValues ->
 # Prototype
 #
 
-type.definePrototype
-
-  isReading:
-    get: -> @_reading
-
-  _caret: require "./Caret"
-
-#
-# Prototype-related
-#
-
 type.defineGetters
 
   isReading: -> @_reading
-
-type.definePrototype
-
-  stdin:
-    get: -> @_stdin
-    set: (newValue, oldValue) ->
-      return if newValue is oldValue
-      if newValue and newValue.isTTY
-        newValue.setRawMode yes
-        @_stdin = newValue
-        @_stream = new EventEmitter
-        @_stream.write = (chunk) -> newValue.write chunk
-        @_stream.on "keypress", @_keypress.bind this
-        addKeyPress @_stream
-      else if oldValue and oldValue.isTTY
-        @_stream = null
-        @_stdin = null
-      return
 
 type.defineMethods
 
@@ -191,15 +163,14 @@ type.defineMethods
 
     log.moat 1
     @_printLabel()
-    log.flush()
 
-    @_caretWasHiding = @_caret.isHidden
+    @_caretWasHiding = caret.isHidden
 
     if @showCursorDuring
-      @_caret.isHidden = no
+      caret.isHidden = no
 
-    if @_caret.x < @_labelLength
-      @_caret.x = @_labelLength
+    if caret.x < @_labelLength
+      caret.x = @_labelLength
 
     return
 
@@ -209,7 +180,7 @@ type.defineMethods
       throw Error "Prompt is not reading!"
 
     if @showCursorDuring
-      @_caret.isHidden = @_caretWasHiding
+      caret.isHidden = @_caretWasHiding
 
     @_async = null
     @_reading = no
@@ -237,7 +208,7 @@ type.defineMethods
     @_printing = yes
     log.pushIndent 0
 
-    x = Math.max 0, @_caret.x - @_labelLength
+    x = Math.max 0, caret.x - @_labelLength
 
     if x is @_message.length
       @_message += event.char
@@ -252,7 +223,7 @@ type.defineMethods
       log.line.length = @_labelLength + stripAnsi(a).length
 
       @_print event.char + b
-      @_caret.x = log.line.length - stripAnsi(b).length
+      caret.x = log.line.length - stripAnsi(b).length
 
     log.popIndent()
     @_printing = no
@@ -262,6 +233,7 @@ type.defineMethods
     log.pushIndent @_indent
     log._printToChunk chunk
     log.popIndent()
+    log.flush()
     return
 
   _printLabel: ->
@@ -272,10 +244,11 @@ type.defineMethods
       @_label = log.line.contents
       @_labelLength = log.line.length
     else
-      log._printChunk { indent: yes }
+      log._printChunk {indent: yes}
       @_label = log._indent
       @_labelLength = log.indent
     log.popIndent()
+    log.flush()
     @_printing = no
 
 module.exports = type.construct()
