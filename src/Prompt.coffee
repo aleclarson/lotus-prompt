@@ -11,6 +11,7 @@ Event = require "Event"
 Type = require "Type"
 fs = require "fs"
 
+KeyBindings = require "./KeyBindings"
 KeyEmitter = require "./KeyEmitter"
 
 type = Type "Prompt"
@@ -35,8 +36,6 @@ type.defineValues ->
 
   _async: null
 
-  _caretWasHiding: no
-
   _line: null
 
   _indent: 0
@@ -51,8 +50,14 @@ type.defineValues ->
 
   _labelPrinter: emptyFunction.thatReturnsFalse
 
+  _caretWasHiding: no
+
   _keyListener: KeyEmitter
-    .didPressKey @_keypress.bind this
+    .didPressKey (event) =>
+      action = KeyBindings[event.command]
+      if isType action, Function
+      then action.call this
+      else @_input event
     .start()
 
 #
@@ -191,14 +196,6 @@ type.defineMethods
 
     @didClose.emit @_prevMessage
     return @_prevMessage
-
-  _keypress: do ->
-    bindings = require "./KeyBindings"
-    return (event) ->
-      action = bindings[event.command]
-      if isType action, Function
-      then action.call this
-      else @_input event
 
   _input: (event) ->
 
