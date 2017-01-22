@@ -105,6 +105,16 @@ type.defineMethods
 
     return deferred.promise
 
+  close: ->
+    @_message = null
+    if @_async
+    then @_cancelAsync()
+    else @_close()
+
+#
+# Internal methods
+#
+
   _writeAsync: (data) ->
     if @_reading
       KeyEmitter.send data

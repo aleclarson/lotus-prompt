@@ -66,15 +66,14 @@ module.exports =
     if length is 0
       log.red "CTRL+C"
       log.moat 1
-      @_message = null
-      if @_async then @_cancelAsync()
-      else @_close()
+      @close()
     else
       log.clearLine()
       @_printLabel()
       @_message = ""
 
   "x+ctrl": ->
+    @close()
     log.pushIndent 0
     log.moat 1
     log.red "CTRL+X"
