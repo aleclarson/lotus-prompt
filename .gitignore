@@ -1,0 +1,8 @@
+node_modules/
+.prompt_history
+
+src/
+spec/
+**/*.map
+README.md
+LICENSE
