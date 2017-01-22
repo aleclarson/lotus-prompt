@@ -3,7 +3,6 @@
 
 emptyFunction = require "emptyFunction"
 stripAnsi = require "strip-ansi"
-parseBool = require "parse-bool"
 immediate = require "immediate"
 Promise = require "Promise"
 isType = require "isType"
@@ -40,8 +39,6 @@ type.defineValues ->
 
   _line: null
 
-  _indent: 0
-
   _message: ""
 
   _prevMessage: null
@@ -50,7 +47,7 @@ type.defineValues ->
 
   _labelLength: 0
 
-  _labelPrinter: emptyFunction.thatReturnsFalse
+  _printLabel: emptyFunction
 
   _caretWasHiding: no
 
@@ -75,106 +72,76 @@ type.defineMethods
   sync: (options = {}) ->
 
     @_async = no
-
     @_setLabel options.label
-
     @_open()
     @_loopSync()
-
     @_close() if @_reading
 
-    if options.parseBool
-      return parseBool @_prevMessage
-
-    return @_prevMessage
+    if options.bool
+      if @_prevMessage is null
+      then null
+      else @_prevMessage is "y"
+    else @_prevMessage
 
   async: (options) ->
 
     @_async = yes
-
     @_setLabel options.label
-
-    deferred = Promise.defer()
-
     @_open()
 
     # Wait for the first keypress.
-    immediate =>
+    deferred = Promise.defer()
+    immediate this, ->
       deferred.resolve()
       @_loopAsync()
-
     return deferred.promise
 
-  _writeAsync: (data) ->
-    if @_reading
-      KeyEmitter.send data
-      @_loopAsync()
+  close: ->
+    @_message = null
+    if @_async
+    then @_cancelAsync()
+    else @_close()
+
+#
+# Internal methods
+#
+
+  _setLabel: (label = "") ->
+
+    if isType label, String
+      label = log._indent + label
+
+    @_printLabel =
+      if isType label, Function
+      then label
+      else -> log.white label
     return
-
-  _cancelAsync: ->
-
-    return no if not @_reading
-
-    result = @_close()
-
-    # TODO: Support 'options.parseBool' in async mode.
-    # if options.parseBool
-    #   result = parseBool result
-
-    deferred.resolve result
-
-    return yes
-
-  _loopAsync: ->
-    buffer = Buffer 3
-    fs.read process.stdin.fd, buffer, 0, 3, null, (error, length) =>
-      if error
-      then @_error = error
-      else @_writeAsync buffer.slice(0, length).toString()
-
-  _setLabel: (label) ->
-
-    if isType label, Function
-      printLabel = label
-
-    else if isType label, String
-      printLabel = -> label
-
-    if printLabel
-      @_labelPrinter = printLabel
-      @didClose 1, =>
-        @_labelPrinter = emptyFunction.thatReturnsFalse
-      .start()
-
-    return
-
-  _loopSync: ->
-    buffer = Buffer 3
-    length = fs.readSync process.stdin.fd, buffer, 0, 3
-    KeyEmitter.send buffer.slice(0, length).toString()
-    return @_loopSync() if @_reading
 
   _open: ->
 
     # Silently fail if already reading.
     # To override, close the prompt and then call this method.
     return if @_reading
-
     @_reading = yes
-    @_indent = log.indent
 
-    log.moat 1
+    log.pushIndent 0
     @_printLabel()
+    log.popIndent()
+    log.flush()
+
+    @_label = log.line.contents
+    @_labelLength = log.line.length
 
     @_caretWasHiding = caret.isHidden
-
-    if @showCursorDuring
-      caret.isHidden = no
-
-    if caret.x < @_labelLength
-      caret.x = @_labelLength
-
+    caret.isHidden = no if @showCursorDuring
+    caret.x = @_labelLength if caret.x < @_labelLength
     return
+
+  _loopSync: ->
+    buffer = Buffer 3
+    length = fs.readSync process.stdin.fd, buffer, 0, 3
+    KeyEmitter.send buffer.slice(0, length).toString()
+    @_reading and @_loopSync()
 
   _close: ->
 
@@ -187,7 +154,6 @@ type.defineMethods
     @_async = null
     @_reading = no
 
-    # @_history.index = @_history.push @_message
     @_prevMessage = @_message
     @_message = ""
 
@@ -206,43 +172,43 @@ type.defineMethods
 
     if x is @_message.length
       @_message += event.char
-      @_print event.char
+      log event.char
 
     # FIXME: Ansi is not supported when slicing!
     else
       a = @_message.slice 0, x
       b = @_message.slice x
-      @_message = a + event.char + b
       log.line.contents = @_label + a
       log.line.length = @_labelLength + stripAnsi(a).length
-
-      @_print event.char + b
+      @_message = a + event.char + b
+      log event.char + b
       caret.x = log.line.length - stripAnsi(b).length
 
     log.popIndent()
+    log.flush()
     @_printing = no
     return
 
-  _print: (chunk) ->
-    log.pushIndent @_indent
-    log._printToChunk chunk
-    log.popIndent()
-    log.flush()
+#
+# Async methods
+#
+
+  _writeAsync: (data) ->
+    if @_reading
+      KeyEmitter.send data
+      @_loopAsync()
     return
 
-  _printLabel: ->
-    @_printing = yes
-    log.moat 0
-    log.pushIndent @_indent
-    if @_labelPrinter() isnt no
-      @_label = log.line.contents
-      @_labelLength = log.line.length
-    else
-      log._printChunk {indent: yes}
-      @_label = log._indent
-      @_labelLength = log.indent
-    log.popIndent()
-    log.flush()
-    @_printing = no
+  _cancelAsync: ->
+    if @_reading
+      deferred.resolve @_close()
+    return
+
+  _loopAsync: ->
+    buffer = Buffer 3
+    fs.read process.stdin.fd, buffer, 0, 3, null, (error, length) =>
+      if error
+      then @_error = error
+      else @_writeAsync buffer.slice(0, length).toString()
 
 module.exports = type.construct()

@@ -28,58 +28,57 @@ module.exports =
 
   "backspace": ->
 
-    # You can't delete the prompt label.
-    x = caret.x - @_labelLength
-
-    # The cursor is at the beginning of the line.
-    return if x <= 0
+    # The label should not be deleted.
+    return if caret.x <= @_labelLength
 
     caretWasHiding = caret.isHidden
     caret.isHidden = yes
 
     # Overwrite the character before the caret.
     caret.x -= 1
-    log._printToChunk " "
+    log._printToChunk " ", {hidden: yes}
     caret.x -= 1
 
+    # The index used to split `this._message`
+    x = caret.x - @_labelLength
+
     # The characters from the caret onward.
-    postCaret = @_message.slice x
+    postCaret = @_message.slice x + 1
 
     # The characters before the deleted character.
-    @_message = @_message.slice 0, x - 1
+    @_message = @_message.slice 0, x
     log.updateLine @_message
 
     if postCaret.length
-      @_print postCaret
       @_message += postCaret
+      log postCaret
+      log._printToChunk " ", {hidden: yes}
       log.updateLine @_message
+      log.flush()
 
-      # This erases the remainder of shifting 'postCaret' to the left.
-      log._printToChunk " " # , {hidden: yes}
-
-    caret.x = x - 1
+    caret.x = x + @_labelLength
     caret.isHidden = caretWasHiding
     return
 
   "c+ctrl": ->
-    { length } = @_message
-    if length is 0
+    if @_message.length is 0
       log.red "CTRL+C"
       log.moat 1
-      @_message = null
-      if @_async then @_cancelAsync()
-      else @_close()
+      @close()
     else
       log.clearLine()
       @_printLabel()
       @_message = ""
+    return
 
   "x+ctrl": ->
+    @close()
     log.pushIndent 0
     log.moat 1
     log.red "CTRL+X"
     log.moat 1
     log.popIndent()
+    log.flush()
     process.exit 0, "SIGTERM"
 
   # Move cursor to beginning of prompt.
@@ -102,7 +101,8 @@ module.exports =
       b = @_message.slice caret.x
       log.clearLine()
       @_printLabel()
-      @_print @_message = a + b
+      log @_message = a + b
+      log.flush()
       caret.x = x
     caret.isHidden = caretWasHiding
     return
