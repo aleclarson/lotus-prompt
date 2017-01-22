@@ -36,6 +36,8 @@ type.defineValues ->
 
   _async: null
 
+  _error: null
+
   _line: null
 
   _indent: 0
@@ -116,8 +118,9 @@ type.defineMethods
   _loopAsync: ->
     buffer = Buffer 3
     fs.read process.stdin.fd, buffer, 0, 3, null, (error, length) =>
-      throw error if error?
-      @_writeAsync? buffer.slice(0, length).toString()
+      if error
+      then @_error = error
+      else @_writeAsync buffer.slice(0, length).toString()
 
   _readSync: (options = {}) ->
 
