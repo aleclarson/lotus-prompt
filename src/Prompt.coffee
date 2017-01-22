@@ -3,7 +3,6 @@
 
 emptyFunction = require "emptyFunction"
 stripAnsi = require "strip-ansi"
-parseBool = require "parse-bool"
 immediate = require "immediate"
 Promise = require "Promise"
 isType = require "isType"
@@ -80,10 +79,11 @@ type.defineMethods
     @_loopSync()
     @_close() if @_reading
 
-    if options.parseBool
-      return parseBool @_prevMessage
-
-    return @_prevMessage
+    if options.bool
+      if @_prevMessage is null
+      then null
+      else @_prevMessage is "y"
+    else @_prevMessage
 
   async: (options) ->
 
