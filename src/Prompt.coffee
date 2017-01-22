@@ -39,8 +39,6 @@ type.defineValues ->
 
   _line: null
 
-  _indent: 0
-
   _message: ""
 
   _prevMessage: null
@@ -49,7 +47,7 @@ type.defineValues ->
 
   _labelLength: 0
 
-  _labelPrinter: emptyFunction.thatReturnsFalse
+  _printLabel: emptyFunction
 
   _caretWasHiding: no
 
@@ -108,20 +106,15 @@ type.defineMethods
 # Internal methods
 #
 
-  _setLabel: (label) ->
+  _setLabel: (label = "") ->
 
-    if isType label, Function
-      printLabel = label
+    if isType label, String
+      label = log._indent + label
 
-    else if isType label, String
-      printLabel = -> label
-
-    if printLabel
-      @_labelPrinter = printLabel
-      @didClose 1, =>
-        @_labelPrinter = emptyFunction.thatReturnsFalse
-      .start()
-
+    @_printLabel =
+      if isType label, Function
+      then label
+      else -> log.white label
     return
 
   _open: ->
@@ -129,21 +122,19 @@ type.defineMethods
     # Silently fail if already reading.
     # To override, close the prompt and then call this method.
     return if @_reading
-
     @_reading = yes
-    @_indent = log.indent
 
-    log.moat 1
+    log.pushIndent 0
     @_printLabel()
+    log.popIndent()
+    log.flush()
+
+    @_label = log.line.contents
+    @_labelLength = log.line.length
 
     @_caretWasHiding = caret.isHidden
-
-    if @showCursorDuring
-      caret.isHidden = no
-
-    if caret.x < @_labelLength
-      caret.x = @_labelLength
-
+    caret.isHidden = no if @showCursorDuring
+    caret.x = @_labelLength if caret.x < @_labelLength
     return
 
   _loopSync: ->
@@ -197,21 +188,6 @@ type.defineMethods
     log.flush()
     @_printing = no
     return
-
-  _printLabel: ->
-    @_printing = yes
-    log.moat 0
-    log.pushIndent @_indent
-    if @_labelPrinter() isnt no
-      @_label = log.line.contents
-      @_labelLength = log.line.length
-    else
-      log._printChunk {indent: yes}
-      @_label = log._indent
-      @_labelLength = log.indent
-    log.popIndent()
-    log.flush()
-    @_printing = no
 
 #
 # Async methods
