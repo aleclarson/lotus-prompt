@@ -181,28 +181,21 @@ type.defineMethods
 
     if x is @_message.length
       @_message += event.char
-      @_print event.char
+      log event.char
 
     # FIXME: Ansi is not supported when slicing!
     else
       a = @_message.slice 0, x
       b = @_message.slice x
-      @_message = a + event.char + b
       log.line.contents = @_label + a
       log.line.length = @_labelLength + stripAnsi(a).length
-
-      @_print event.char + b
+      @_message = a + event.char + b
+      log event.char + b
       caret.x = log.line.length - stripAnsi(b).length
 
     log.popIndent()
-    @_printing = no
-    return
-
-  _print: (chunk) ->
-    log.pushIndent @_indent
-    log._printToChunk chunk
-    log.popIndent()
     log.flush()
+    @_printing = no
     return
 
   _printLabel: ->

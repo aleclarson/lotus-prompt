@@ -101,7 +101,8 @@ module.exports =
       b = @_message.slice caret.x
       log.clearLine()
       @_printLabel()
-      @_print @_message = a + b
+      log @_message = a + b
+      log.flush()
       caret.x = x
     caret.isHidden = caretWasHiding
     return
