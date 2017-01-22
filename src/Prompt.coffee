@@ -72,13 +72,23 @@ type.defineGetters
 
 type.defineMethods
 
-  sync: (options) ->
-    @_readSync options
+  sync: (options = {}) ->
+
+    @_async = no
+
+    @_setLabel options.label
+
+    @_open()
+    @_loopSync()
+
+    @_close() if @_reading
+
+    if options.parseBool
+      return parseBool @_prevMessage
+
+    return @_prevMessage
 
   async: (options) ->
-    @_readAsync options
-
-  _readAsync: (options) ->
 
     @_async = yes
 
@@ -122,23 +132,6 @@ type.defineMethods
       then @_error = error
       else @_writeAsync buffer.slice(0, length).toString()
 
-  _readSync: (options = {}) ->
-
-    @_async = no
-
-    @_setLabel options.label
-
-    @_open()
-
-    @_loopSync()
-
-    @_close() if @_reading
-
-    if options.parseBool
-      return parseBool @_prevMessage
-
-    return @_prevMessage
-
   _setLabel: (label) ->
 
     if isType label, Function
@@ -152,6 +145,7 @@ type.defineMethods
       @didClose 1, =>
         @_labelPrinter = emptyFunction.thatReturnsFalse
       .start()
+
     return
 
   _loopSync: ->
