@@ -75,12 +75,9 @@ type.defineMethods
   sync: (options = {}) ->
 
     @_async = no
-
     @_setLabel options.label
-
     @_open()
     @_loopSync()
-
     @_close() if @_reading
 
     if options.parseBool
@@ -91,18 +88,14 @@ type.defineMethods
   async: (options) ->
 
     @_async = yes
-
     @_setLabel options.label
-
-    deferred = Promise.defer()
-
     @_open()
 
     # Wait for the first keypress.
-    immediate =>
+    deferred = Promise.defer()
+    immediate this, ->
       deferred.resolve()
       @_loopAsync()
-
     return deferred.promise
 
   close: ->
@@ -114,33 +107,6 @@ type.defineMethods
 #
 # Internal methods
 #
-
-  _writeAsync: (data) ->
-    if @_reading
-      KeyEmitter.send data
-      @_loopAsync()
-    return
-
-  _cancelAsync: ->
-
-    return no if not @_reading
-
-    result = @_close()
-
-    # TODO: Support 'options.parseBool' in async mode.
-    # if options.parseBool
-    #   result = parseBool result
-
-    deferred.resolve result
-
-    return yes
-
-  _loopAsync: ->
-    buffer = Buffer 3
-    fs.read process.stdin.fd, buffer, 0, 3, null, (error, length) =>
-      if error
-      then @_error = error
-      else @_writeAsync buffer.slice(0, length).toString()
 
   _setLabel: (label) ->
 
@@ -157,12 +123,6 @@ type.defineMethods
       .start()
 
     return
-
-  _loopSync: ->
-    buffer = Buffer 3
-    length = fs.readSync process.stdin.fd, buffer, 0, 3
-    KeyEmitter.send buffer.slice(0, length).toString()
-    return @_loopSync() if @_reading
 
   _open: ->
 
@@ -186,6 +146,12 @@ type.defineMethods
 
     return
 
+  _loopSync: ->
+    buffer = Buffer 3
+    length = fs.readSync process.stdin.fd, buffer, 0, 3
+    KeyEmitter.send buffer.slice(0, length).toString()
+    @_reading and @_loopSync()
+
   _close: ->
 
     unless @_reading
@@ -197,7 +163,6 @@ type.defineMethods
     @_async = null
     @_reading = no
 
-    # @_history.index = @_history.push @_message
     @_prevMessage = @_message
     @_message = ""
 
@@ -254,5 +219,27 @@ type.defineMethods
     log.popIndent()
     log.flush()
     @_printing = no
+
+#
+# Async methods
+#
+
+  _writeAsync: (data) ->
+    if @_reading
+      KeyEmitter.send data
+      @_loopAsync()
+    return
+
+  _cancelAsync: ->
+    if @_reading
+      deferred.resolve @_close()
+    return
+
+  _loopAsync: ->
+    buffer = Buffer 3
+    fs.read process.stdin.fd, buffer, 0, 3, null, (error, length) =>
+      if error
+      then @_error = error
+      else @_writeAsync buffer.slice(0, length).toString()
 
 module.exports = type.construct()

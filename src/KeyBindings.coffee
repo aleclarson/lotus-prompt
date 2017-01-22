@@ -62,8 +62,7 @@ module.exports =
     return
 
   "c+ctrl": ->
-    { length } = @_message
-    if length is 0
+    if @_message.length is 0
       log.red "CTRL+C"
       log.moat 1
       @close()
@@ -71,6 +70,7 @@ module.exports =
       log.clearLine()
       @_printLabel()
       @_message = ""
+    return
 
   "x+ctrl": ->
     @close()
@@ -79,6 +79,7 @@ module.exports =
     log.red "CTRL+X"
     log.moat 1
     log.popIndent()
+    log.flush()
     process.exit 0, "SIGTERM"
 
   # Move cursor to beginning of prompt.
