@@ -1,7 +1,5 @@
 
-log = require "log"
-
-caret = require "./Caret"
+{caret} = log = require "log"
 
 module.exports =
 
@@ -39,21 +37,27 @@ module.exports =
     caretWasHiding = caret.isHidden
     caret.isHidden = yes
 
-    # Move the cursor left one character.
+    # Overwrite the character before the caret.
+    caret.x -= 1
+    log._printToChunk " "
     caret.x -= 1
 
-    messageBefore = @_message.slice 0, x - 1
-    messageAfter = @_message.slice x
-    if messageAfter.length
-      @_print messageAfter + " "
-      @_message = messageBefore + messageAfter
-      caret.x -= messageAfter.length + 1
+    # The characters from the caret onward.
+    postCaret = @_message.slice x
 
-    else
-      @_print " "       # Overwrite the character with whitespace.
-      caret.x -= 1 # Pretend like the whitespace isnt there.
-      @_message = messageBefore
+    # The characters before the deleted character.
+    @_message = @_message.slice 0, x - 1
+    log.updateLine @_message
 
+    if postCaret.length
+      @_print postCaret
+      @_message += postCaret
+      log.updateLine @_message
+
+      # This erases the remainder of shifting 'postCaret' to the left.
+      log._printToChunk " " # , {hidden: yes}
+
+    caret.x = x - 1
     caret.isHidden = caretWasHiding
     return
 
@@ -96,10 +100,9 @@ module.exports =
       x = 1 + a.replace(/\s+$/, "").lastIndexOf " "
       a = a.slice 0, x
       b = @_message.slice caret.x
-      @_message = a + b
       log.clearLine()
       @_printLabel()
-      @_print @_message
-      caret.x = @_labelLength + x
+      @_print @_message = a + b
+      caret.x = x
     caret.isHidden = caretWasHiding
     return
