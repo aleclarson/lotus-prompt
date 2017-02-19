@@ -13,6 +13,8 @@ fs = require "fs"
 KeyBindings = require "./KeyBindings"
 KeyEmitter = require "./KeyEmitter"
 
+canSync = process.versions.node < '5'
+
 type = Type "Prompt"
 
 type.defineValues ->
@@ -70,6 +72,9 @@ type.defineGetters
 type.defineMethods
 
   sync: (options = {}) ->
+
+    unless canSync
+      throw Error "'prompt.sync' only works with Node 4 or under!"
 
     KeyEmitter._setupStream process.stdin
 
