@@ -71,7 +71,8 @@ type.defineMethods
 
   sync: (options = {}) ->
 
-    @_async = no
+    KeyEmitter._setupStream process.stdin
+
     @_setLabel options.label
     @_open()
     @_loopSync()
