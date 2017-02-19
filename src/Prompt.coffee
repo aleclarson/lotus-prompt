@@ -29,6 +29,8 @@ type.defineValues ->
   # TODO: Implement tab completion.
   # tabComplete: -> []
 
+  _stream: process.stdin
+
   # The prompt is reading input.
   _reading: no
 
@@ -76,7 +78,7 @@ type.defineMethods
     unless canSync
       throw Error "'prompt.sync' only works with Node 4 or under!"
 
-    KeyEmitter._setupStream process.stdin
+    KeyEmitter._setupStream @_stream
 
     @_setLabel options.label
     @_open()
@@ -145,7 +147,7 @@ type.defineMethods
 
   _loopSync: ->
     buffer = Buffer 3
-    length = fs.readSync process.stdin.fd, buffer, 0, 3
+    length = fs.readSync @_stream.fd, buffer, 0, 3
     KeyEmitter.send buffer.slice(0, length).toString()
     @_reading and @_loopSync()
 
@@ -212,7 +214,7 @@ type.defineMethods
 
   _loopAsync: ->
     buffer = Buffer 3
-    fs.read process.stdin.fd, buffer, 0, 3, null, (error, length) =>
+    fs.read @_stream.fd, buffer, 0, 3, null, (error, length) =>
       if error
       then @_error = error
       else @_writeAsync buffer.slice(0, length).toString()
