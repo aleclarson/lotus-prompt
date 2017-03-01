@@ -2,7 +2,6 @@
 {EventEmitter} = require "events"
 
 assertType = require "assertType"
-keypress = require "keypress"
 Event = require "Event"
 Type = require "Type"
 
@@ -15,16 +14,6 @@ type.defineValues ->
   _didPressKey: Event()
 
   _emitter: null
-
-type.initInstance ->
-  stream = process.stdin
-  if stream and stream.isTTY
-    stream.setRawMode yes
-    @_emitter = new EventEmitter
-    @_emitter.on "keypress", @_keypress.bind this
-    @_emitter.write = (chunk) -> stream.write chunk
-    keypress @_emitter
-  return
 
 type.defineGetters
 
@@ -50,5 +39,17 @@ type.defineMethods
     for modifier in keyModifiers
       return modifier if key[modifier]
     return null
+
+  _setupStream: (stream) ->
+    return if @_emitter
+    if stream and stream.isTTY
+      stream.setRawMode yes
+      keypress = require "keypress"
+      keypress do =>
+        @_emitter = emitter = new EventEmitter
+        emitter.on "keypress", @_keypress.bind this
+        emitter.write = (chunk) -> stream.write chunk
+        return emitter
+    return
 
 module.exports = type.construct()
