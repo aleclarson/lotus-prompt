@@ -3,7 +3,7 @@
 
 emptyFunction = require "emptyFunction"
 stripAnsi = require "strip-ansi"
-immediate = require "immediate"
+readline = require "readline"
 Promise = require "Promise"
 isType = require "isType"
 Event = require "Event"
@@ -91,24 +91,35 @@ type.defineMethods
       else @_prevMessage is "y"
     else @_prevMessage
 
-  async: (options) ->
+  async: (options = {}) ->
 
-    @_async = yes
+    @_async = Promise.defer()
+    readline.emitKeypressEvents @_stream
+
     @_setLabel options.label
     @_open()
 
-    # Wait for the first keypress.
-    deferred = Promise.defer()
-    immediate this, ->
-      deferred.resolve()
-      @_loopAsync()
-    return deferred.promise
+    @_stream.setRawMode true
+    @_stream.on "keypress", listener =
+      (char, key) -> KeyEmitter._keypress char, key
 
-  close: ->
-    @_message = null
+    @_async.listener = listener
+    return @_async.promise
+
+  close: (message = null) ->
+
+    unless @_reading
+      throw Error "Must be reading!"
+
+    @_message = message
+
     if @_async
-    then @_cancelAsync()
-    else @_close()
+      @_stream.removeListener "keypress", @_async.listener
+      @_async.resolve @_close()
+      return
+
+    @_close()
+    return
 
 #
 # Internal methods
@@ -145,6 +156,7 @@ type.defineMethods
     caret.x = @_labelLength if caret.x < @_labelLength
     return
 
+  # TODO: Fix this method to support Node 5+
   _loopSync: ->
     buffer = Buffer 3
     length = fs.readSync @_stream.fd, buffer, 0, 3
@@ -152,9 +164,6 @@ type.defineMethods
     @_reading and @_loopSync()
 
   _close: ->
-
-    unless @_reading
-      throw Error "Prompt is not reading!"
 
     if @showCursorDuring
       caret.isHidden = @_caretWasHiding
@@ -196,27 +205,5 @@ type.defineMethods
     log.flush()
     @_printing = no
     return
-
-#
-# Async methods
-#
-
-  _writeAsync: (data) ->
-    if @_reading
-      KeyEmitter.send data
-      @_loopAsync()
-    return
-
-  _cancelAsync: ->
-    if @_reading
-      deferred.resolve @_close()
-    return
-
-  _loopAsync: ->
-    buffer = Buffer 3
-    fs.read @_stream.fd, buffer, 0, 3, null, (error, length) =>
-      if error
-      then @_error = error
-      else @_writeAsync buffer.slice(0, length).toString()
 
 module.exports = type.construct()

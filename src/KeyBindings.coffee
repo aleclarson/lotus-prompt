@@ -15,9 +15,7 @@ module.exports =
 
   "return": ->
     if @_message.length > 0
-      if @_async
-      then @_cancelAsync()
-      else @_close()
+      @close @_message
     return
 
   "tab": ->
