@@ -2,7 +2,7 @@
 {EventEmitter} = require "events"
 
 assertType = require "assertType"
-Event = require "Event"
+Event = require "eve"
 Type = require "Type"
 
 keyModifiers = "ctrl meta shift".split " "
@@ -11,13 +11,9 @@ type = Type "KeyEmitter"
 
 type.defineValues ->
 
-  _didPressKey: Event()
+  didPressKey: Event()
 
   _emitter: null
-
-type.defineGetters
-
-  didPressKey: -> @_didPressKey.listenable
 
 type.defineMethods
 
@@ -32,7 +28,7 @@ type.defineMethods
     if modifier = @_getModifier key
       command += "+" + modifier
 
-    @_didPressKey.emit {char, key, command, modifier}
+    @didPressKey.emit {char, key, command, modifier}
     return
 
   _getModifier: (key) ->

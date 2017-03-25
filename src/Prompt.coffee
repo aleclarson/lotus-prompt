@@ -6,7 +6,7 @@ stripAnsi = require "strip-ansi"
 readline = require "readline"
 Promise = require "Promise"
 isType = require "isType"
-Event = require "Event"
+Event = require "eve"
 Type = require "Type"
 fs = require "fs"
 
@@ -61,7 +61,6 @@ type.defineValues ->
       if isType action, Function
       then action.call this
       else @_input event
-    .start()
 
 #
 # Prototype
